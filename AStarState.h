@@ -21,4 +21,4 @@ class AStarState
  virtual bool isSameState( S & rhs ) = 0;
 };
 
-#endif
+#endif // A_STAR_STATE_H

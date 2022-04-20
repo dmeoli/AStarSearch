@@ -289,4 +289,4 @@ class AStarSearch
  }
 };
 
-#endif
+#endif // A_STAR_SEARCH_H

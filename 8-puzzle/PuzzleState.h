@@ -1,5 +1,5 @@
-#ifndef PUZZLE_STATE_H
-#define PUZZLE_STATE_H
+#ifndef A_STAR_SEARCH_PUZZLE_STATE_H
+#define A_STAR_SEARCH_PUZZLE_STATE_H
 
 #include <cstring>
 #include <iostream>
@@ -227,4 +227,4 @@ PuzzleState::TILE PuzzleState::start[] = {
  TL_5
 };
 
-#endif
+#endif // A_STAR_SEARCH_PUZZLE_STATE_H

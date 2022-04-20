@@ -1,9 +1,15 @@
 # JetBrains IDE CLion
 .idea
 
-# Build files
+# C++ Build files
 cmake-build-debug
 build
+
 8Puzzle
 FindPath
 MinPathToBucharest
+NQueens
+Maze
+
+# Java Build files
+*.class

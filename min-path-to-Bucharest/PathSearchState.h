@@ -1,5 +1,5 @@
-#ifndef PATH_SEARCH_STATE_H
-#define PATH_SEARCH_STATE_H
+#ifndef A_STAR_SEARCH_PATH_SEARCH_STATE_H
+#define A_STAR_SEARCH_PATH_SEARCH_STATE_H
 
 #include <string>
 #include <iostream>
@@ -127,4 +127,4 @@ class PathSearchState : public AStarState< PathSearchState >
  }
 };
 
-#endif
+#endif // A_STAR_SEARCH_PATH_SEARCH_STATE_H

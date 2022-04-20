@@ -1,5 +1,5 @@
-#ifndef MAP_SEARCH_STATE_H
-#define MAP_SEARCH_STATE_H
+#ifndef A_STAR_SEARCH_MAP_SEARCH_STATE_H
+#define A_STAR_SEARCH_MAP_SEARCH_STATE_H
 
 #include <cmath>
 #include <iostream>
@@ -128,4 +128,4 @@ class MapSearchState : public AStarState< MapSearchState >
  int y;
 };
 
-#endif
+#endif // A_STAR_SEARCH_MAP_SEARCH_STATE_H
