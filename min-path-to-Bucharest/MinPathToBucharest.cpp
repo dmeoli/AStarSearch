@@ -6,12 +6,12 @@
  * from which the search algorithm will start looking for the minimum path to
  * Bucharest.
  *
- * Usage: ./MinPathToBucharest.o {Arad|Bucharest|Craiova|Drobeta|Eforie|
- *                               |Fagaras|Giurgiu|Hirsova|Iasi|Lugoj|Mehadia|
- *                               |Neamt|Oradea|Pitesti|RimnicuVilcea|Sibiu|
- *                               |Timisoara|Urziceni|Vaslui|Zerind}
+ * Usage: ./MinPathToBucharest {Arad|Bucharest|Craiova|Drobeta|Eforie|
+ *                             |Fagaras|Giurgiu|Hirsova|Iasi|Lugoj|Mehadia|
+ *                             |Neamt|Oradea|Pitesti|RimnicuVilcea|Sibiu|
+ *                             |Timisoara|Urziceni|Vaslui|Zerind}
  *
- * Example: ./MinPathToBucharest.o Arad
+ * Example: ./MinPathToBucharest Arad
  *
  * @author Donato Meoli
  */

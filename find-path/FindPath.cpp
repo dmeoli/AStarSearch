@@ -1,7 +1,7 @@
 /**
  * A* Search implementation to find a path on a simple grid maze.
  *
- * Usage: ./FindPath.o
+ * Usage: ./FindPath
  *
  * @author Donato Meoli
  */

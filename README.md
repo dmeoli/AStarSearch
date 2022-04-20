@@ -23,9 +23,9 @@ $ make
 and then:
 
 ```
-$ ./FindPath.o
-$ ./8Puzzle.o {134862705|281043765|281463075|567408321|etc.}
-$ ./MinPathToBucharest.o {Arad|Bucharest|Craiova|Drobeta|Eforie|Fagaras|Giurgiu|Hirsova|Iasi|Lugoj|Mehadia|Neamt|Oradea|Pitesti|RimnicuVilcea|Sibiu|Timisoara|Urziceni|Vaslui|Zerind}
+$ ./FindPath
+$ ./8Puzzle {134862705|281043765|281463075|567408321|etc.}
+$ ./MinPathToBucharest {Arad|Bucharest|Craiova|Drobeta|Eforie|Fagaras|Giurgiu|Hirsova|Iasi|Lugoj|Mehadia|Neamt|Oradea|Pitesti|RimnicuVilcea|Sibiu|Timisoara|Urziceni|Vaslui|Zerind}
 ```
 
 ## License [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

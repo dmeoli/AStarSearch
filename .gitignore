@@ -4,4 +4,6 @@
 # Build files
 cmake-build-debug
 build
-*.o
+8Puzzle
+FindPath
+MinPathToBucharest
