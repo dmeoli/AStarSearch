@@ -3,18 +3,20 @@
 This code is an implementation of the [A* search algorithm](https://en.wikipedia.com/wiki/A*_search_algorithm) developed during the Knowledge 
 Engineering course @ [Department of Computer Science](http://www.uniba.it/ricerca/dipartimenti/informatica) @ [University of Bari "Aldo Moro"](http://www.uniba.it/) under the supervision of prof. [Floriana Esposito](http://lacam.di.uniba.it/people/FlorianaEsposito.html).
 
-After three years from its sequential development, in the context of Parallel 
-and Distributed Systems course @ [Department of Computer Science](https://www.di.unipi.it/en/) 
-@ [University of Pisa](https://www.unipi.it/index.php/english) under the 
-supervision of prof. [Marco Danelutto](http://calvados.di.unipi.it/paragroup/danelutto/) 
-and [Massimo Torquati](http://calvados.di.unipi.it/paragroup/torquati/), I 
-provide different parallelized versions of the A* search algorithm described 
-in [1] using different multi-threading libraries, i.e.:
+After three years from its sequential development, I provide different 
+parallelized versions of the A* search algorithm described in [1] using 
+different concurrent libraries, i.e.:
 
-- [x] [C++ Standard Library](https://en.cppreference.com/w/cpp/thread)
-- [x] [FastFlow](http://calvados.di.unipi.it/)
-- [x] [OpenMP](https://www.openmp.org/)
-- [x] [Intel TBB (Threading Building Blocks)](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html)
+  - [x] [C++ Standard Library](https://en.cppreference.com/w/cpp/thread)
+  - [x] [FastFlow](http://calvados.di.unipi.it/)
+  - [x] [OpenMP](https://www.openmp.org/)
+  - [x] [Intel TBB (Threading Building Blocks)](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html)
+
+in the context of Parallel
+and Distributed Systems course @ [Department of Computer Science](https://www.di.unipi.it/en/)
+@ [University of Pisa](https://www.unipi.it/index.php/english) under the
+supervision of prof. [Marco Danelutto](http://calvados.di.unipi.it/paragroup/danelutto/)
+and [Massimo Torquati](http://calvados.di.unipi.it/paragroup/torquati/).
 
 ## Running the software
 
