@@ -1,7 +1,7 @@
 # JetBrains IDE CLion
 .idea
-cmake-build-debug
-CMakeLists.txt
 
-# Object files
+# Build files
+cmake-build-debug
+build
 *.o
