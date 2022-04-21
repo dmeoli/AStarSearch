@@ -14,5 +14,5 @@ add_executable(FindPath ${A_STAR}
         find-path/FindPath.cpp)
 
 add_executable(MinPathToBucharest ${A_STAR}
-        min-path-to-Bucharest/PathSearchState.h
+        min-path-to-Bucharest/PathSearchNode.h
         min-path-to-Bucharest/MinPathToBucharest.cpp)

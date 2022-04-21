@@ -1,5 +1,5 @@
-#ifndef A_STAR_SEARCH_MAP_SEARCH_STATE_H
-#define A_STAR_SEARCH_MAP_SEARCH_STATE_H
+#ifndef A_STAR_SEARCH_MAP_SEARCH_NODE_H
+#define A_STAR_SEARCH_MAP_SEARCH_NODE_H
 
 #include <cmath>
 #include <iostream>
@@ -7,7 +7,7 @@
 #include "../AStarSearch.h"
 #include "../AStarState.h"
 
-class MapSearchState : public AStarState< MapSearchState >
+class MapSearchNode : public AStarState< MapSearchNode >
 {
 
  public:
@@ -63,57 +63,57 @@ class MapSearchState : public AStarState< MapSearchState >
   return worldMap[ ( y * MAP_WIDTH ) + x ];
  }
 
- MapSearchState() {
+ MapSearchNode() {
   x = 0;
   y = 0;
  }
 
- MapSearchState( int x , int y ) {
+ MapSearchNode( int x , int y ) {
   this->x = x;
   this->y = y;
  }
 
- float goalDistanceEstimate( MapSearchState & nodeGoal ) override {
+ float goalDistanceEstimate( MapSearchNode & nodeGoal ) override {
   return fabs( x - nodeGoal.x ) + fabs( y - nodeGoal.y );
  }
 
- bool isGoal( MapSearchState & nodeGoal ) override {
+ bool isGoal( MapSearchNode & nodeGoal ) override {
   return x == nodeGoal.x && y == nodeGoal.y;
  }
 
- bool getSuccessors( AStarSearch< MapSearchState > * aStarSearch ,
-                     MapSearchState * parentNode ) override {
+ bool getSuccessors( AStarSearch< MapSearchNode > * aStarSearch ,
+                     MapSearchNode * parentNode ) override {
   int parentX = -1;
   int parentY = -1;
   if( parentNode ) {
    parentX = parentNode->x;
    parentY = parentNode->y;
   }
-  MapSearchState mapSearchState;
+  MapSearchNode mapSearchState;
   if( getMap( x - 1 , y ) < 9 && !( parentX == x - 1 && parentY == y ) ) {
-   mapSearchState = MapSearchState( x - 1 , y );
+   mapSearchState = MapSearchNode( x - 1 , y );
    aStarSearch->addSuccessor( mapSearchState );
   }
   if( getMap( x , y - 1 < 9 ) && !( parentX == x && parentY == y - 1 ) ) {
-   mapSearchState = MapSearchState( x , y - 1 );
+   mapSearchState = MapSearchNode( x , y - 1 );
    aStarSearch->addSuccessor( mapSearchState );
   }
   if( getMap( x + 1 , y ) < 9 && !( parentX == x + 1 && parentY == y ) ) {
-   mapSearchState = MapSearchState( x + 1 , y );
+   mapSearchState = MapSearchNode( x + 1 , y );
    aStarSearch->addSuccessor( mapSearchState );
   }
   if( getMap( x , y + 1 ) < 9 && !( parentX == x && parentY == y + 1 ) ) {
-   mapSearchState = MapSearchState( x , y + 1 );
+   mapSearchState = MapSearchNode( x , y + 1 );
    aStarSearch->addSuccessor( mapSearchState );
   }
   return true;
  }
 
- float getCost( MapSearchState & successor ) override {
+ float getCost( MapSearchNode & successor ) override {
   return ( float ) getMap( x , y );
  }
 
- bool isSameState( MapSearchState & rhs ) override {
+ bool isSameState( MapSearchNode & rhs ) override {
   return x == rhs.x && y == rhs.y;
  }
 
@@ -129,4 +129,4 @@ class MapSearchState : public AStarState< MapSearchState >
  int y;
 };
 
-#endif // A_STAR_SEARCH_MAP_SEARCH_STATE_H
+#endif // A_STAR_SEARCH_MAP_SEARCH_NODE_H

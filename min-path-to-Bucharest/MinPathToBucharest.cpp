@@ -16,7 +16,7 @@
  * @author Donato Meoli
  */
 
-#include "PathSearchState.h"
+#include "PathSearchNode.h"
 
 int main( int argc , char * argv[] ) {
  for( auto & i : romaniaMap ) {
@@ -108,10 +108,10 @@ int main( int argc , char * argv[] ) {
    return EXIT_FAILURE;
   }
  }
- AStarSearch< PathSearchState > aStarSearch;
- PathSearchState startPathSearchState;
+ AStarSearch< PathSearchNode > aStarSearch;
+ PathSearchNode startPathSearchState;
  startPathSearchState.city = startCity;
- PathSearchState goalPathSearchState;
+ PathSearchNode goalPathSearchState;
  goalPathSearchState.city = Bucharest;
  aStarSearch.setStartAndGoalStates( startPathSearchState ,
                                     goalPathSearchState );
@@ -121,10 +121,10 @@ int main( int argc , char * argv[] ) {
   searchState = aStarSearch.searchStep();
   searchSteps++;
  } while( searchState ==
-          AStarSearch< PathSearchState >::SEARCH_STATE_SEARCHING );
- if( searchState == AStarSearch< PathSearchState >::SEARCH_STATE_SUCCEEDED ) {
+          AStarSearch< PathSearchNode >::SEARCH_STATE_SEARCHING );
+ if( searchState == AStarSearch< PathSearchNode >::SEARCH_STATE_SUCCEEDED ) {
   cout << "Search found goal state..." << endl;
-  PathSearchState * pathSearchState = aStarSearch.getSolutionStart();
+  PathSearchNode * pathSearchState = aStarSearch.getSolutionStart();
   cout << "Displaying solution:" << endl;
   int steps = 0;
   pathSearchState->printNodeInfo();
@@ -135,13 +135,13 @@ int main( int argc , char * argv[] ) {
    pathSearchState->printNodeInfo();
    steps++;
   }
-  cout << "Solution step: " << steps << endl;
+  cout << "Solution steps: " << steps << endl;
   aStarSearch.freeSolutionNodes();
  } else if( searchState ==
-            AStarSearch< PathSearchState >::SEARCH_STATE_FAILED ) {
+            AStarSearch< PathSearchNode >::SEARCH_STATE_FAILED ) {
   cout << "Search terminated. Did not find goal state!" << endl;
  } else if( searchState ==
-            AStarSearch< PathSearchState >::SEARCH_STATE_OUT_OF_MEMORY ) {
+            AStarSearch< PathSearchNode >::SEARCH_STATE_OUT_OF_MEMORY ) {
   cout << "Search terminated. Out of memory!" << endl;
  }
  cout << "Search steps: " << searchSteps << endl;

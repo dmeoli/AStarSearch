@@ -1,5 +1,5 @@
-#ifndef A_STAR_SEARCH_PATH_SEARCH_STATE_H
-#define A_STAR_SEARCH_PATH_SEARCH_STATE_H
+#ifndef A_STAR_SEARCH_PATH_SEARCH_NODE_H
+#define A_STAR_SEARCH_PATH_SEARCH_NODE_H
 
 #include <string>
 #include <iostream>
@@ -37,22 +37,22 @@ vector< string > cityNames( MAX_CITIES );
 
 float romaniaMap[MAX_CITIES][MAX_CITIES];
 
-class PathSearchState : public AStarState< PathSearchState >
+class PathSearchNode : public AStarState< PathSearchNode >
 {
 
  public:
 
  CITIES city;
 
- PathSearchState() {
+ PathSearchNode() {
   city = Arad;
  }
 
- explicit PathSearchState( CITIES in ) {
+ explicit PathSearchNode( CITIES in ) {
   this->city = in;
  }
 
- float goalDistanceEstimate( PathSearchState & nodeGoal ) override {
+ float goalDistanceEstimate( PathSearchNode & nodeGoal ) override {
   switch( city ) {
    case Arad:
     return 366;
@@ -99,27 +99,27 @@ class PathSearchState : public AStarState< PathSearchState >
   }
  }
 
- bool isGoal( PathSearchState & nodeGoal ) override {
+ bool isGoal( PathSearchNode & nodeGoal ) override {
   return city == Bucharest;
  }
 
- bool getSuccessors( AStarSearch< PathSearchState > * aStarSearch ,
-                     PathSearchState * parentNode ) override {
-  PathSearchState pathSearchState;
+ bool getSuccessors( AStarSearch< PathSearchNode > * aStarSearch ,
+                     PathSearchNode * parentNode ) override {
+  PathSearchNode pathSearchState;
   for( int c = 0 ; c < MAX_CITIES ; c++ ) {
    if( romaniaMap[ city ][ c ] < 0 )
     continue;
-   pathSearchState = PathSearchState( ( CITIES ) c );
+   pathSearchState = PathSearchNode( ( CITIES ) c );
    aStarSearch->addSuccessor( pathSearchState );
   }
   return true;
  }
 
- float getCost( PathSearchState & successor ) override {
+ float getCost( PathSearchNode & successor ) override {
   return romaniaMap[ city ][ successor.city ];
  }
 
- bool isSameState( PathSearchState & rhs ) override {
+ bool isSameState( PathSearchNode & rhs ) override {
   return city == rhs.city;
  }
 
@@ -128,4 +128,4 @@ class PathSearchState : public AStarState< PathSearchState >
  }
 };
 
-#endif // A_STAR_SEARCH_PATH_SEARCH_STATE_H
+#endif // A_STAR_SEARCH_PATH_SEARCH_NODE_H

@@ -52,7 +52,7 @@ int main( int argc , char * argv[] ) {
    cout << endl;
    steps++;
   }
-  cout << "Solution step: " << steps << endl;
+  cout << "Solution steps: " << steps << endl;
   puzzleState = aStarSearch.getSolutionEnd();
   steps = 0;
   puzzleState->printNodeInfo();
