@@ -26,6 +26,15 @@ To compile the source code and run the software you just type into the terminal:
 $ make
 ```
 
+or:
+
+```
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
+```
+
 and then:
 
 ```
