@@ -60,13 +60,17 @@ class AStarSearch
  {
 
   public:
+
   bool operator()( const Node * x , const Node * y ) const {
    return x->f > y->f;
   }
+
  };
 
  AStarSearch() {
   currentSolutionNode = nullptr;
+  state = 0;
+  steps = 0;
  }
 
  void setStartAndGoalStates( AStarState & startState ,

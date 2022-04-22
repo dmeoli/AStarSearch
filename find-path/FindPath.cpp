@@ -1,20 +1,32 @@
 /**
  * A* Search implementation to find a path on a simple grid maze.
  *
- * Usage: ./FindPath
+ * Usage: ./FindPath start_x start_y goal_x goal_y
+ *
+ * Example: ./FindPath 3 6 17 15
  *
  * @author Donato Meoli
  */
+
+#include <random>
 
 #include "MapSearchNode.h"
 
 int main( int argc , char * argv[] ) {
  AStarSearch< MapSearchNode > aStarSearch;
- MapSearchNode startState( rand() % MapSearchNode::MAP_HEIGHT ,
-                            rand() % MapSearchNode::MAP_HEIGHT );
- MapSearchNode goalState( rand() % MapSearchNode::MAP_WIDTH ,
-                           rand() % MapSearchNode::MAP_HEIGHT );
- aStarSearch.setStartAndGoalStates( startState , goalState );
+ if( argc == 5 ) {
+  MapSearchNode startNode( atoi( argv[ 1 ] ) , atoi( argv[ 2 ] ) );
+  MapSearchNode goalNode( atoi( argv[ 3 ] ) , atoi( argv[ 4 ] ) );
+  aStarSearch.setStartAndGoalStates( startNode , goalNode );
+ } else {
+  std::random_device rd;
+  std::mt19937 mt( rd() );
+  MapSearchNode startNode( mt() % MapSearchNode::MAP_WIDTH ,
+                           mt() % MapSearchNode::MAP_HEIGHT );
+  MapSearchNode goalNode( mt() % MapSearchNode::MAP_WIDTH ,
+                          mt() % MapSearchNode::MAP_HEIGHT );
+  aStarSearch.setStartAndGoalStates( startNode , goalNode );
+ }
  unsigned int searchState;
  unsigned int searchSteps = 0;
  do {
@@ -24,15 +36,15 @@ int main( int argc , char * argv[] ) {
           AStarSearch< MapSearchNode >::SEARCH_STATE_SEARCHING );
  if( searchState == AStarSearch< MapSearchNode >::SEARCH_STATE_SUCCEEDED ) {
   cout << "Search found goal state..." << endl;
-  MapSearchNode * mapSearchState = aStarSearch.getSolutionStart();
+  MapSearchNode * mapSearchNode = aStarSearch.getSolutionStart();
   cout << "Displaying solution:" << endl;
   int steps = 0;
-  mapSearchState->printNodeInfo();
+  mapSearchNode->printNodeInfo();
   for( ;; ) {
-   mapSearchState = aStarSearch.getSolutionNext();
-   if( !mapSearchState )
+   mapSearchNode = aStarSearch.getSolutionNext();
+   if( !mapSearchNode )
     break;
-   mapSearchState->printNodeInfo();
+   mapSearchNode->printNodeInfo();
    steps++;
   }
   cout << "Solution steps: " << steps << endl;

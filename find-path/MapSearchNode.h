@@ -68,13 +68,13 @@ class MapSearchNode : public AStarState< MapSearchNode >
   y = 0;
  }
 
- MapSearchNode( int x , int y ) {
+ MapSearchNode( unsigned int x , unsigned int y ) {
   this->x = x;
   this->y = y;
  }
 
  float goalDistanceEstimate( MapSearchNode & nodeGoal ) override {
-  return fabs( x - nodeGoal.x ) + fabs( y - nodeGoal.y );
+  return abs( x - nodeGoal.x ) + abs( y - nodeGoal.y );
  }
 
  bool isGoal( MapSearchNode & nodeGoal ) override {
@@ -89,23 +89,38 @@ class MapSearchNode : public AStarState< MapSearchNode >
    parentX = parentNode->x;
    parentY = parentNode->y;
   }
-  MapSearchNode mapSearchState;
-  if( getMap( x - 1 , y ) < 9 && !( parentX == x - 1 && parentY == y ) ) {
-   mapSearchState = MapSearchNode( x - 1 , y );
-   aStarSearch->addSuccessor( mapSearchState );
+
+  MapSearchNode mapSearchNode;
+
+  // push each possible move except allowing the search to go backwards
+
+  if( ( getMap( x - 1 , y ) < 9 )
+      && !( ( parentX == x - 1 ) && ( parentY == y ) )
+   ) {
+   mapSearchNode = MapSearchNode( x - 1 , y );
+   aStarSearch->addSuccessor( mapSearchNode );
   }
-  if( getMap( x , y - 1 < 9 ) && !( parentX == x && parentY == y - 1 ) ) {
-   mapSearchState = MapSearchNode( x , y - 1 );
-   aStarSearch->addSuccessor( mapSearchState );
+
+  if( ( getMap( x , y - 1 ) < 9 )
+      && !( ( parentX == x ) && ( parentY == y - 1 ) )
+   ) {
+   mapSearchNode = MapSearchNode( x , y - 1 );
+   aStarSearch->addSuccessor( mapSearchNode );
   }
-  if( getMap( x + 1 , y ) < 9 && !( parentX == x + 1 && parentY == y ) ) {
-   mapSearchState = MapSearchNode( x + 1 , y );
-   aStarSearch->addSuccessor( mapSearchState );
+
+  if( ( getMap( x + 1 , y ) < 9 )
+      && !( ( parentX == x + 1 ) && ( parentY == y ) )
+   ) {
+   mapSearchNode = MapSearchNode( x + 1 , y );
+   aStarSearch->addSuccessor( mapSearchNode );
   }
-  if( getMap( x , y + 1 ) < 9 && !( parentX == x && parentY == y + 1 ) ) {
-   mapSearchState = MapSearchNode( x , y + 1 );
-   aStarSearch->addSuccessor( mapSearchState );
+  if( ( getMap( x , y + 1 ) < 9 )
+      && !( ( parentX == x ) && ( parentY == y + 1 ) )
+   ) {
+   mapSearchNode = MapSearchNode( x , y + 1 );
+   aStarSearch->addSuccessor( mapSearchNode );
   }
+
   return true;
  }
 

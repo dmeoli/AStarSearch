@@ -105,12 +105,12 @@ class PathSearchNode : public AStarState< PathSearchNode >
 
  bool getSuccessors( AStarSearch< PathSearchNode > * aStarSearch ,
                      PathSearchNode * parentNode ) override {
-  PathSearchNode pathSearchState;
+  PathSearchNode pathSearchNode;
   for( int c = 0 ; c < MAX_CITIES ; c++ ) {
    if( romaniaMap[ city ][ c ] < 0 )
     continue;
-   pathSearchState = PathSearchNode( ( CITIES ) c );
-   aStarSearch->addSuccessor( pathSearchState );
+   pathSearchNode = PathSearchNode( ( CITIES ) c );
+   aStarSearch->addSuccessor( pathSearchNode );
   }
   return true;
  }

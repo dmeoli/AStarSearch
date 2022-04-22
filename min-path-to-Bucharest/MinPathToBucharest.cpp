@@ -109,12 +109,12 @@ int main( int argc , char * argv[] ) {
   }
  }
  AStarSearch< PathSearchNode > aStarSearch;
- PathSearchNode startPathSearchState;
- startPathSearchState.city = startCity;
- PathSearchNode goalPathSearchState;
- goalPathSearchState.city = Bucharest;
- aStarSearch.setStartAndGoalStates( startPathSearchState ,
-                                    goalPathSearchState );
+ PathSearchNode startPathSearchNode;
+ startPathSearchNode.city = startCity;
+ PathSearchNode goalPathSearchNode;
+ goalPathSearchNode.city = Bucharest;
+ aStarSearch.setStartAndGoalStates( startPathSearchNode ,
+                                    goalPathSearchNode );
  unsigned int searchState;
  unsigned int searchSteps = 0;
  do {
@@ -124,15 +124,15 @@ int main( int argc , char * argv[] ) {
           AStarSearch< PathSearchNode >::SEARCH_STATE_SEARCHING );
  if( searchState == AStarSearch< PathSearchNode >::SEARCH_STATE_SUCCEEDED ) {
   cout << "Search found goal state..." << endl;
-  PathSearchNode * pathSearchState = aStarSearch.getSolutionStart();
+  PathSearchNode * pathSearchNode = aStarSearch.getSolutionStart();
   cout << "Displaying solution:" << endl;
   int steps = 0;
-  pathSearchState->printNodeInfo();
+  pathSearchNode->printNodeInfo();
   for( ;; ) {
-   pathSearchState = aStarSearch.getSolutionNext();
-   if( !pathSearchState )
+   pathSearchNode = aStarSearch.getSolutionNext();
+   if( !pathSearchNode )
     break;
-   pathSearchState->printNodeInfo();
+   pathSearchNode->printNodeInfo();
    steps++;
   }
   cout << "Solution steps: " << steps << endl;
