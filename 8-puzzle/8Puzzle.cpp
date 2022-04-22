@@ -10,8 +10,6 @@
  * Usage: ./8Puzzle {134862705|281043765|281463075|567408321|etc.}
  *
  * Example: ./8Puzzle 281463075
- *
- * @author Donato Meoli
  */
 
 #include "PuzzleState.h"

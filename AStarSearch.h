@@ -7,8 +7,6 @@
  * Since g(n) gives the path cost from the start node to node n, and h(n) is
  * the estimated cost of the cheapest path from n to the goal, we have
  * f(n) = estimated cost of the cheapest solution through n.
- *
- * @author Donato Meoli
  */
 
 #ifndef A_STAR_SEARCH_H
