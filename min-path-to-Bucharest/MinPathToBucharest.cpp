@@ -12,8 +12,6 @@
  *                             |Timisoara|Urziceni|Vaslui|Zerind}
  *
  * Example: ./MinPathToBucharest Arad
- *
- * @author Donato Meoli
  */
 
 #include "PathSearchNode.h"
