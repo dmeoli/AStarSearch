@@ -39,50 +39,49 @@
 #include "MapSearchNode.h"
 
 int main( int argc , char * argv[] ) {
- AStarSearch< MapSearchNode > aStarSearch;
+ AStarSearch< MapSearchNode > a_star_search;
  if( argc == 5 ) {
-  MapSearchNode startNode( atoi( argv[ 1 ] ) , atoi( argv[ 2 ] ) );
-  MapSearchNode goalNode( atoi( argv[ 3 ] ) , atoi( argv[ 4 ] ) );
-  aStarSearch.setStartAndGoalStates( startNode , goalNode );
+  MapSearchNode start_node( atoi( argv[ 1 ] ) , atoi( argv[ 2 ] ) );
+  MapSearchNode goal_node( atoi( argv[ 3 ] ) , atoi( argv[ 4 ] ) );
+  a_star_search.set_start_goal_states( start_node , goal_node );
  } else {
   std::random_device rd;
   std::mt19937 mt( rd() );
-  MapSearchNode startNode( mt() % MapSearchNode::MAP_WIDTH ,
+  MapSearchNode start_node( mt() % MapSearchNode::MAP_WIDTH ,
+                            mt() % MapSearchNode::MAP_HEIGHT );
+  MapSearchNode goal_node( mt() % MapSearchNode::MAP_WIDTH ,
                            mt() % MapSearchNode::MAP_HEIGHT );
-  MapSearchNode goalNode( mt() % MapSearchNode::MAP_WIDTH ,
-                          mt() % MapSearchNode::MAP_HEIGHT );
-  aStarSearch.setStartAndGoalStates( startNode , goalNode );
+  a_star_search.set_start_goal_states( start_node , goal_node );
  }
- unsigned int searchState;
- unsigned int searchSteps = 0;
+ unsigned int search_state;
+ unsigned int search_steps = 0;
  do {
-  searchState = aStarSearch.searchStep();
-  searchSteps++;
- } while( searchState ==
+  search_state = a_star_search.search_step();
+  search_steps++;
+ } while( search_state ==
           AStarSearch< MapSearchNode >::SEARCH_STATE_SEARCHING );
- if( searchState == AStarSearch< MapSearchNode >::SEARCH_STATE_SUCCEEDED ) {
+ if( search_state == AStarSearch< MapSearchNode >::SEARCH_STATE_SUCCEEDED ) {
   cout << "Search found goal state..." << endl;
-  MapSearchNode * mapSearchNode = aStarSearch.getSolutionStart();
+  MapSearchNode * map_search_node = a_star_search.get_solution_start();
   cout << "Displaying solution:" << endl;
   int steps = 0;
-  mapSearchNode->printNodeInfo();
+  map_search_node->print_node_info();
   for( ;; ) {
-   mapSearchNode = aStarSearch.getSolutionNext();
-   if( !mapSearchNode )
+   map_search_node = a_star_search.get_solution_next();
+   if( !map_search_node )
     break;
-   mapSearchNode->printNodeInfo();
+   map_search_node->print_node_info();
    steps++;
   }
   cout << "Solution steps: " << steps << endl;
-  aStarSearch.freeSolutionNodes();
- } else if( searchState ==
+  a_star_search.free_solution_nodes();
+ } else if( search_state ==
             AStarSearch< MapSearchNode >::SEARCH_STATE_FAILED ) {
   cout << "Search terminated. Did not find goal state!" << endl;
- } else if( searchState ==
+ } else if( search_state ==
             AStarSearch< MapSearchNode >::SEARCH_STATE_OUT_OF_MEMORY ) {
   cout << "Search terminated. Out of memory!" << endl;
  }
- cout << "Search steps: " << searchSteps << endl;
+ cout << "Search steps: " << search_steps << endl;
  return EXIT_SUCCESS;
 }
-

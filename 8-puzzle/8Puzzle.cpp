@@ -1,5 +1,5 @@
 /**
- * A* Search implementation to solve 8 puzzle.
+ * A* Search implementation to solve 8-puzzle.
  *
  * Goal:        Easy:        Medium:      Hard:        Worst:
  *
@@ -12,7 +12,19 @@
  * Example: ./8Puzzle 281463075
  */
 
-#include "PuzzleState.h"
+#include "EightPuzzleState.h"
+
+EightPuzzleState::TILE EightPuzzleState::start[] = {
+ TL_1 ,
+ TL_3 ,
+ TL_4 ,
+ TL_8 ,
+ TL_SPACE ,
+ TL_2 ,
+ TL_7 ,
+ TL_6 ,
+ TL_5
+};
 
 int main( int argc , char * argv[] ) {
  if( argc > 1 ) {
@@ -20,55 +32,57 @@ int main( int argc , char * argv[] ) {
   while( ( c = argv[ 1 ][ i ] ) ) {
    if( isdigit( c ) ) {
     int n = ( c - '0' );
-    PuzzleState::start[ i ] = static_cast<PuzzleState::TILE>(n);
+    EightPuzzleState::start[ i ] = static_cast<EightPuzzleState::TILE>(n);
    }
    i++;
   }
  }
- AStarSearch< PuzzleState > aStarSearch;
- PuzzleState startState( PuzzleState::start );
- PuzzleState goalState( PuzzleState::goal );
- aStarSearch.setStartAndGoalStates( startState , goalState );
- unsigned int searchState;
- unsigned int searchSteps = 0;
+ AStarSearch< EightPuzzleState > a_star_search;
+ EightPuzzleState startState( EightPuzzleState::start );
+ EightPuzzleState goalState( EightPuzzleState::goal );
+ a_star_search.set_start_goal_states( startState , goalState );
+ unsigned int search_state;
+ unsigned int search_steps = 0;
  do {
-  searchState = aStarSearch.searchStep();
-  searchSteps++;
- } while( searchState == AStarSearch< PuzzleState >::SEARCH_STATE_SEARCHING );
- if( searchState == AStarSearch< PuzzleState >::SEARCH_STATE_SUCCEEDED ) {
+  search_state = a_star_search.search_step();
+  search_steps++;
+ } while( search_state ==
+          AStarSearch< EightPuzzleState >::SEARCH_STATE_SEARCHING );
+ if( search_state == AStarSearch< EightPuzzleState >::SEARCH_STATE_SUCCEEDED ) {
   cout << "Search found goal state..." << endl;
-  PuzzleState * puzzleState = aStarSearch.getSolutionStart();
+  EightPuzzleState * puzzle_state = a_star_search.get_solution_start();
   cout << "Displaying solution:" << endl;
   int steps = 0;
-  puzzleState->printNodeInfo();
+  puzzle_state->print_node_info();
   cout << endl;
   for( ;; ) {
-   puzzleState = aStarSearch.getSolutionNext();
-   if( !puzzleState )
+   puzzle_state = a_star_search.get_solution_next();
+   if( !puzzle_state )
     break;
-   puzzleState->printNodeInfo();
+   puzzle_state->print_node_info();
    cout << endl;
    steps++;
   }
   cout << "Solution steps: " << steps << endl;
-  puzzleState = aStarSearch.getSolutionEnd();
+  puzzle_state = a_star_search.get_solution_end();
   steps = 0;
-  puzzleState->printNodeInfo();
+  puzzle_state->print_node_info();
   cout << endl;
   for( ;; ) {
-   puzzleState = aStarSearch.getSolutionPrev();
-   if( !puzzleState )
+   puzzle_state = a_star_search.get_solution_prev();
+   if( !puzzle_state )
     break;
    steps++;
   }
-  aStarSearch.freeSolutionNodes();
- } else if( searchState == AStarSearch< PuzzleState >::SEARCH_STATE_FAILED ) {
+  a_star_search.free_solution_nodes();
+ } else if( search_state ==
+            AStarSearch< EightPuzzleState >::SEARCH_STATE_FAILED ) {
   cout << "Search terminated. Did not find goal state!" << endl;
- } else if( searchState ==
-            AStarSearch< PuzzleState >::SEARCH_STATE_OUT_OF_MEMORY ) {
+ } else if( search_state ==
+            AStarSearch< EightPuzzleState >::SEARCH_STATE_OUT_OF_MEMORY ) {
   cout << "Search terminated. Out of memory!" << endl;
  }
- cout << "Search steps: " << aStarSearch.getStepCount() << endl;
+ cout << "Search steps: " << a_star_search.get_step_count() << endl;
  return EXIT_SUCCESS;
 }
 

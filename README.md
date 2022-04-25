@@ -9,8 +9,8 @@ concurrent libraries, i.e.:
 
   - [x] [C++ Standard Library](https://en.cppreference.com/w/cpp/thread)
   - [x] [FastFlow](http://calvados.di.unipi.it/)
-  - [x] [OpenMP](https://www.openmp.org/)
-  - [x] [Intel TBB (Threading Building Blocks)](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html)
+  - [ ] [OpenMP](https://www.openmp.org/)
+  - [ ] [Intel TBB (Threading Building Blocks)](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html)
 
 in the context of Parallel
 and Distributed Systems course @ [Department of Computer Science](https://www.di.unipi.it/en/)
@@ -40,26 +40,9 @@ and then:
 ```
 $ ./FindPath
 $ ./8Puzzle {134862705|281043765|281463075|567408321|etc.}
+$ ./15Puzzle {10 2 7 1 14 0 8 4 13 5 15 12 9 11 3 6|etc.}
 $ ./MinPathToBucharest {Arad|Bucharest|Craiova|Drobeta|Eforie|Fagaras|Giurgiu|Hirsova|Iasi|Lugoj|Mehadia|Neamt|Oradea|Pitesti|RimnicuVilcea|Sibiu|Timisoara|Urziceni|Vaslui|Zerind}
 ```
-
-### Maze Generator
-
-To compile the maze generator, run:
-
-```
-$ make MazeGenerator
-```
-
-and then, to generate the maze, run:
-
-```
-$ cd maze
-$ java MazeGenerator <maze_width> <maze_height> <display> data/<output_file>
-```
-
-Our maze generator are modified based on the maze generator from 
-[Rosetta Code](https://www.rosettacode.org/wiki/Maze_generation#C.2B.2B).
 
 ## License [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

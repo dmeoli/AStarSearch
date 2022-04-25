@@ -33,9 +33,9 @@ enum CITIES
  Zerind
 };
 
-vector< string > cityNames( MAX_CITIES );
+vector< string > city_names( MAX_CITIES );
 
-float romaniaMap[MAX_CITIES][MAX_CITIES];
+float romania_map[MAX_CITIES][MAX_CITIES];
 
 class PathSearchNode : public AStarState< PathSearchNode >
 {
@@ -44,15 +44,11 @@ class PathSearchNode : public AStarState< PathSearchNode >
 
  CITIES city;
 
- PathSearchNode() {
-  city = Arad;
- }
+ PathSearchNode() : city( Arad ) {}
 
- explicit PathSearchNode( CITIES in ) {
-  this->city = in;
- }
+ explicit PathSearchNode( CITIES in ) : city( in ) {}
 
- float goalDistanceEstimate( PathSearchNode & nodeGoal ) override {
+ float goal_distance_estimate( PathSearchNode & goal_node ) override {
   switch( city ) {
    case Arad:
     return 366;
@@ -99,32 +95,32 @@ class PathSearchNode : public AStarState< PathSearchNode >
   }
  }
 
- bool isGoal( PathSearchNode & nodeGoal ) override {
+ bool is_goal( PathSearchNode & goal_node ) override {
   return city == Bucharest;
  }
 
- bool getSuccessors( AStarSearch< PathSearchNode > * aStarSearch ,
-                     PathSearchNode * parentNode ) override {
-  PathSearchNode pathSearchNode;
+ bool get_successors( AStarSearch< PathSearchNode > * a_star_search ,
+                      PathSearchNode * parent_node ) override {
+  PathSearchNode path_search_node;
   for( int c = 0 ; c < MAX_CITIES ; c++ ) {
-   if( romaniaMap[ city ][ c ] < 0 )
+   if( romania_map[ city ][ c ] < 0 )
     continue;
-   pathSearchNode = PathSearchNode( ( CITIES ) c );
-   aStarSearch->addSuccessor( pathSearchNode );
+   path_search_node = PathSearchNode( ( CITIES ) c );
+   a_star_search->add_successor( path_search_node );
   }
   return true;
  }
 
- float getCost( PathSearchNode & successor ) override {
-  return romaniaMap[ city ][ successor.city ];
+ float get_cost( PathSearchNode & successor ) override {
+  return romania_map[ city ][ successor.city ];
  }
 
- bool isSameState( PathSearchNode & rhs ) override {
+ bool is_same_state( PathSearchNode & rhs ) override {
   return city == rhs.city;
  }
 
- void printNodeInfo() const {
-  cout << " " << cityNames[ city ] << endl;
+ void print_node_info() const {
+  cout << " " << city_names[ city ] << endl;
  }
 };
 

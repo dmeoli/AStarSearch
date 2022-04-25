@@ -43,15 +43,11 @@ class AStarSearch
   float h;
   float f;
 
-  AStarState aStarState;
+  AStarState a_star_state;
 
-  Node() {
-   parent = nullptr;
-   child = nullptr;
-   g = 0.0f;
-   h = 0.0f;
-   f = 0.0f;
-  }
+  Node() :
+   parent( nullptr ) , child( nullptr ) ,
+   g( 0.0f ) , h( 0.0f ) , f( 0.0f ) {}
  };
 
  class HeapCompare
@@ -65,44 +61,42 @@ class AStarSearch
 
  };
 
- AStarSearch() {
-  currentSolutionNode = nullptr;
-  state = 0;
-  steps = 0;
- }
+ AStarSearch() :
+  current_solution_node( nullptr ) ,
+  state( 0 ) , steps( 0 ) {}
 
- void setStartAndGoalStates( AStarState & startState ,
-                             AStarState & goalState ) {
+ void set_start_goal_states( AStarState & start_state ,
+                             AStarState & goal_state ) {
   start = new Node;
   goal = new Node;
-  start->aStarState = startState;
-  goal->aStarState = goalState;
+  start->a_star_state = start_state;
+  goal->a_star_state = goal_state;
   state = SEARCH_STATE_SEARCHING;
   start->g = 0.0f;
-  start->h = start->aStarState.goalDistanceEstimate( goal->aStarState );
+  start->h = start->a_star_state.goal_distance_estimate( goal->a_star_state );
   start->f = start->g + start->h;
   start->parent = nullptr;
-  openList.push_back( start );
-  push_heap( openList.begin() , openList.end() , HeapCompare() );
+  open_list.push_back( start );
+  push_heap( open_list.begin() , open_list.end() , HeapCompare() );
   steps = 0;
  }
 
- unsigned int searchStep() {
+ unsigned int search_step() {
   if( state == SEARCH_STATE_SUCCEEDED || state == SEARCH_STATE_FAILED )
    return state;
-  if( openList.empty() ) {
-   freeAllNodes();
+  if( open_list.empty() ) {
+   free_all_nodes();
    state = SEARCH_STATE_FAILED;
    return state;
   }
   steps++;
-  Node * first = openList.front();
-  pop_heap( openList.begin() , openList.end() , HeapCompare() );
-  openList.pop_back();
-  if( first->aStarState.isGoal( goal->aStarState ) ) {
+  Node * first = open_list.front();
+  pop_heap( open_list.begin() , open_list.end() , HeapCompare() );
+  open_list.pop_back();
+  if( first->a_star_state.is_goal( goal->a_star_state ) ) {
    goal->parent = first->parent;
    goal->g = first->g;
-   if( !first->aStarState.isSameState( start->aStarState ) ) {
+   if( !first->a_star_state.is_same_state( start->a_star_state ) ) {
     delete first;
     Node * nodeChild = goal;
     Node * nodeParent = goal->parent;
@@ -112,84 +106,88 @@ class AStarSearch
      nodeParent = nodeParent->parent;
     } while( nodeChild != start );
    }
-   freeUnusedNodes();
+   free_unused_nodes();
    state = SEARCH_STATE_SUCCEEDED;
    return state;
   } else {
    successors.clear();
-   if( !first->aStarState.getSuccessors( this , first->parent
-                                                ? &first->parent->aStarState
-                                                : nullptr ) ) {
-    typename vector< Node * >::iterator iterSucc;
-    for( iterSucc = successors.begin() ;
-         iterSucc != successors.end() ; iterSucc++ )
-     delete *iterSucc;
+   if( !first->a_star_state.get_successors( this , first->parent
+                                                   ? &first->parent->a_star_state
+                                                   : nullptr ) ) {
+    typename vector< Node * >::iterator iter_succ;
+    for( iter_succ = successors.begin() ;
+         iter_succ != successors.end() ; iter_succ++ )
+     delete *iter_succ;
     successors.clear();
-    freeAllNodes();
+    free_all_nodes();
     state = SEARCH_STATE_OUT_OF_MEMORY;
     return state;
    }
-   typename vector< Node * >::iterator iterSucc;
-   for( iterSucc = successors.begin() ;
-        iterSucc != successors.end() ; iterSucc++ ) {
-    float g = first->g + first->aStarState.getCost( ( *iterSucc )->aStarState );
-    typename vector< Node * >::iterator iterOpen;
-    for( iterOpen = openList.begin() ;
-         iterOpen != openList.end() ; iterOpen++ ) {
-     if( ( *iterOpen )->aStarState.isSameState( ( *iterSucc )->aStarState ) )
+   typename vector< Node * >::iterator iter_succ;
+   for( iter_succ = successors.begin() ;
+        iter_succ != successors.end() ; iter_succ++ ) {
+    float g =
+     first->g + first->a_star_state.get_cost( ( *iter_succ )->a_star_state );
+    typename vector< Node * >::iterator iter_open;
+    for( iter_open = open_list.begin() ;
+         iter_open != open_list.end() ; iter_open++ ) {
+     if( ( *iter_open )->a_star_state.is_same_state( ( *iter_succ )
+     ->a_star_state
+     ) )
       break;
     }
-    if( iterOpen != openList.end() ) {
-     if( ( *iterOpen )->g <= g ) {
-      delete *iterSucc;
+    if( iter_open != open_list.end() ) {
+     if( ( *iter_open )->g <= g ) {
+      delete *iter_succ;
       continue;
      }
     }
-    typename vector< Node * >::iterator iterClosed;
-    for( iterClosed = closedList.begin() ;
-         iterClosed != closedList.end() ; iterClosed++ ) {
-     if( ( *iterClosed )->aStarState.isSameState( ( *iterSucc )->aStarState ) )
+    typename vector< Node * >::iterator iter_closed;
+    for( iter_closed = closed_list.begin() ;
+         iter_closed != closed_list.end() ; iter_closed++ ) {
+     if( ( *iter_closed )->a_star_state.is_same_state(
+      ( *iter_succ )->a_star_state ) )
       break;
     }
-    if( iterClosed != closedList.end() ) {
-     if( ( *iterClosed )->g <= g ) {
-      delete *iterSucc;
+    if( iter_closed != closed_list.end() ) {
+     if( ( *iter_closed )->g <= g ) {
+      delete *iter_succ;
       continue;
      }
     }
-    ( *iterSucc )->parent = first;
-    ( *iterSucc )->g = g;
-    ( *iterSucc )->h = ( *iterSucc )->aStarState.goalDistanceEstimate(
-     goal->aStarState );
-    ( *iterSucc )->f = ( *iterSucc )->g + ( *iterSucc )->h;
-    if( iterClosed != closedList.end() ) {
-     delete *iterClosed;
-     closedList.erase( iterClosed );
+    ( *iter_succ )->parent = first;
+    ( *iter_succ )->g = g;
+    ( *iter_succ )->h = ( *iter_succ )->a_star_state.goal_distance_estimate(
+     goal->a_star_state );
+    ( *iter_succ )->f = ( *iter_succ )->g + ( *iter_succ )->h;
+    if( iter_closed != closed_list.end() ) {
+     delete *iter_closed;
+     closed_list.erase( iter_closed );
     }
-    if( iterOpen != openList.end() ) {
-     delete *iterOpen;
-     openList.erase( iterOpen );
-     make_heap( openList.begin() , openList.end() , HeapCompare() );
+    if( iter_open != open_list.end() ) {
+     delete *iter_open;
+     open_list.erase( iter_open );
+     make_heap( open_list.begin() , open_list.end() , HeapCompare() );
     }
-    openList.push_back( *iterSucc );
-    push_heap( openList.begin() , openList.end() , HeapCompare() );
+    open_list.push_back( *iter_succ );
+    push_heap( open_list.begin() , open_list.end() , HeapCompare() );
    }
-   closedList.push_back( first );
+   closed_list.push_back( first );
   }
   return state;
  }
 
- bool addSuccessor( AStarState & state ) {
+ bool add_successor( AStarState & state ) {
   Node * node = new Node;
   if( node ) {
-   node->aStarState = state;
+   node->a_star_state = state;
    successors.push_back( node );
    return true;
   }
   return false;
  }
 
- void freeSolutionNodes() {
+ void free_solution_nodes() {
   Node * node = start;
   if( start->child ) {
    do {
@@ -204,52 +202,52 @@ class AStarSearch
   }
  }
 
- AStarState * getSolutionStart() {
-  currentSolutionNode = start;
+ AStarState * get_solution_start() {
+  current_solution_node = start;
   if( start )
-   return &start->aStarState;
+   return &start->a_star_state;
   else
    return nullptr;
  }
 
- AStarState * getSolutionNext() {
-  if( currentSolutionNode ) {
-   if( currentSolutionNode->child ) {
-    Node * child = currentSolutionNode->child;
-    currentSolutionNode = currentSolutionNode->child;
-    return &child->aStarState;
+ AStarState * get_solution_next() {
+  if( current_solution_node ) {
+   if( current_solution_node->child ) {
+    Node * child = current_solution_node->child;
+    current_solution_node = current_solution_node->child;
+    return &child->a_star_state;
    }
   }
   return nullptr;
  }
 
- AStarState * getSolutionEnd() {
-  currentSolutionNode = goal;
+ AStarState * get_solution_end() {
+  current_solution_node = goal;
   if( goal )
-   return &goal->aStarState;
+   return &goal->a_star_state;
   else
    return nullptr;
  }
 
- AStarState * getSolutionPrev() {
-  if( currentSolutionNode ) {
-   if( currentSolutionNode->parent ) {
-    Node * parent = currentSolutionNode->parent;
-    currentSolutionNode = currentSolutionNode->parent;
-    return &parent->aStarState;
+ AStarState * get_solution_prev() {
+  if( current_solution_node ) {
+   if( current_solution_node->parent ) {
+    Node * parent = current_solution_node->parent;
+    current_solution_node = current_solution_node->parent;
+    return &parent->a_star_state;
    }
   }
   return nullptr;
  }
 
- int getStepCount() {
+ int get_step_count() {
   return steps;
  }
 
  private:
 
- vector< Node * > openList;
- vector< Node * > closedList;
+ vector< Node * > open_list;
+ vector< Node * > closed_list;
  vector< Node * > successors;
 
  unsigned int state;
@@ -257,36 +255,38 @@ class AStarSearch
 
  Node * start;
  Node * goal;
- Node * currentSolutionNode;
+ Node * current_solution_node;
 
- void freeUnusedNodes() {
-  typename vector< Node * >::iterator iterOpen;
-  for( iterOpen = openList.begin() ; iterOpen != openList.end() ; iterOpen++ ) {
-   if( !( *iterOpen )->child )
-    delete *iterOpen;
+ void free_unused_nodes() {
+  typename vector< Node * >::iterator iter_open;
+  for( iter_open = open_list.begin() ;
+       iter_open != open_list.end() ; iter_open++ ) {
+   if( !( *iter_open )->child )
+    delete *iter_open;
   }
-  openList.clear();
-  typename vector< Node * >::iterator iterClosed;
-  for( iterClosed = closedList.begin() ;
-       iterClosed != closedList.end() ; iterClosed++ ) {
-   if( !( *iterClosed )->child )
-    delete *iterClosed;
+  open_list.clear();
+  typename vector< Node * >::iterator iter_closed;
+  for( iter_closed = closed_list.begin() ;
+       iter_closed != closed_list.end() ; iter_closed++ ) {
+   if( !( *iter_closed )->child )
+    delete *iter_closed;
   }
-  closedList.clear();
+  closed_list.clear();
  }
 
- void freeAllNodes() {
-  typename vector< Node * >::iterator iterOpen;
-  for( iterOpen = openList.begin() ; iterOpen != openList.end() ; iterOpen++ ) {
-   delete *iterOpen;
+ void free_all_nodes() {
+  typename vector< Node * >::iterator iter_open;
+  for( iter_open = open_list.begin() ;
+       iter_open != open_list.end() ; iter_open++ ) {
+   delete *iter_open;
   }
-  openList.clear();
-  typename vector< Node * >::iterator iterClosed;
-  for( iterClosed = closedList.begin() ;
-       iterClosed != closedList.end() ; iterClosed++ ) {
-   delete *iterClosed;
+  open_list.clear();
+  typename vector< Node * >::iterator iter_closed;
+  for( iter_closed = closed_list.begin() ;
+       iter_closed != closed_list.end() ; iter_closed++ ) {
+   delete *iter_closed;
   }
-  closedList.clear();
+  closed_list.clear();
   delete goal;
  }
 };
