@@ -56,7 +56,7 @@ class FifteenPuzzleState : public AStarState< FifteenPuzzleState >
   memcpy( tiles , param_tiles , sizeof( TILE ) * BOARD_WIDTH * BOARD_HEIGHT );
  }
 
- float goal_distance_estimate( FifteenPuzzleState & nodeGoal ) override {
+ float goal_distance_estimate( FifteenPuzzleState & goal_node ) override {
   // Nilsson's sequence score heuristic: not admissible and so it is not
   // optimal, i.e., it may result in a suboptimal solution, but may do so in
   // a much shorter time than that taken by an admissible heuristic, e.g.,
@@ -146,8 +146,8 @@ class FifteenPuzzleState : public AStarState< FifteenPuzzleState >
   return ( float ) t;
  }
 
- bool is_goal( FifteenPuzzleState & nodeGoal ) override {
-  return is_same_state( nodeGoal );
+ bool is_goal( FifteenPuzzleState & goal_node ) override {
+  return is_same_state( goal_node );
  }
 
  bool get_successors( AStarSearch< FifteenPuzzleState > * a_star_search ,

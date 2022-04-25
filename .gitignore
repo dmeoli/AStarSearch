@@ -6,10 +6,9 @@ cmake-build-debug
 build
 
 8Puzzle
+15Puzzle
 FindPath
 MinPathToBucharest
-NQueens
-Maze
 
 # Java Build files
 *.class
