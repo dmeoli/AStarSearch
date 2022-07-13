@@ -8,8 +8,8 @@ Engineering course @ [Department of Computer Science](http://www.uniba.it/ricerc
   - [ ] NQueens
 
 After three years from its sequential development, I provide different 
-parallelized versions of the algorithm described in [1] using different 
-concurrent libraries, i.e.:
+parallelized versions of the algorithm described in [1 - Algorithm 2] using 
+different concurrent libraries, i.e.:
 
   - [ ] [C++ Standard Library](https://en.cppreference.com/w/cpp/thread)
   - [ ] [FastFlow](http://calvados.di.unipi.it/)
