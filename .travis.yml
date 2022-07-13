@@ -4,4 +4,7 @@ compiler:
   - g++
   - clang
 
+before_script:
+  - apt-get install libtbb-dev
+
 script: make
