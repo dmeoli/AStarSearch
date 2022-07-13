@@ -5,6 +5,8 @@ Engineering course @ [Department of Computer Science](http://www.uniba.it/ricerc
 
 ##  TODO
 
+  - [ ] NQueens
+
 After three years from its sequential development, I provide different 
 parallelized versions of the algorithm described in [1] using different 
 concurrent libraries, i.e.:
@@ -21,15 +23,24 @@ and prof. [Massimo Torquati](http://calvados.di.unipi.it/paragroup/torquati/).
 
 ## Running the software
 
-To compile the source code and run the software you just type into the terminal:
+Getting the whole project and all the subprojects updated at the latest 
+version can be done with:
 
+```sh
+git clone --recurse-submodules https://github.com/dmeoli/AStarSearch.git
+git submodule foreach --recursive "git checkout develop || git checkout master"
+git submodule foreach --recursive "git pull"
 ```
+
+To build the source code and run the code you just type into the terminal:
+
+```sh
 $ make
 ```
 
-or:
+or, using CMake:
 
-```
+```sh
 $ mkdir build
 $ cd build
 $ cmake ..
@@ -38,7 +49,7 @@ $ make
 
 and then:
 
-```
+```sh
 $ ./FindPath
 $ ./8Puzzle {134862705|281043765|281463075|567408321|etc.}
 $ ./15Puzzle {10 2 7 1 14 0 8 4 13 5 15 12 9 11 3 6|etc.}

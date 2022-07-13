@@ -6,7 +6,7 @@
  * travelling (think ice rink if you can skate) whilst 5 represents the most
  * difficult. 9 indicates that we cannot pass.
  *
- * Usage: ./FindPath start_col start_row goal_col goal_row
+ * Usage:   ./FindPath <start_col> <start_row> <goal_col> <goal_row>
  *
  * Example: ./FindPath 3 6 17 15
  *
