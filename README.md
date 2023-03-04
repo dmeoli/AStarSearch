@@ -1,4 +1,4 @@
-# A* Search [![Build Status](https://app.travis-ci.com/dmeoli/AStarSearch.svg?branch=master)](https://app.travis-ci.com/dmeoli/AStarSearch)
+# A* Search [![Build Status](https://api.travis-ci.com/dmeoli/AStarSearch.svg?branch=master)](https://app.travis-ci.com/dmeoli/AStarSearch)
 
 This code is an implementation of the [A* search algorithm](https://en.wikipedia.com/wiki/A*_search_algorithm) developed during the Knowledge 
 Engineering course @ [Department of Computer Science](http://www.uniba.it/ricerca/dipartimenti/informatica) @ [University of Bari "Aldo Moro"](http://www.uniba.it/) under the supervision of prof. [Floriana Esposito](http://lacam.di.uniba.it/people/FlorianaEsposito.html).
