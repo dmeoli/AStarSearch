@@ -1,14 +1,19 @@
 # JetBrains IDE CLion
 .idea
+cmake-build-*
 
-# C++ Build files
-cmake-build-debug
+# CMake build directories
 build
 
-8Puzzle
-15Puzzle
-FindPath
-MinPathToBucharest
-
-# Java Build files
-*.class
+# the programs built by the makefiles
+examples/8Puzzle
+examples/15Puzzle
+examples/FindPath
+examples/MinPathToBucharest
+test/AStarSearch_test
+test/AStarSearch_test_mpi
+test/AStarSearchConfig.h
+tools/AStarBench
+tools/AStarBenchMPI
+*.o
+*~

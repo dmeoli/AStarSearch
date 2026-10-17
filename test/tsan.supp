@@ -1,0 +1,14 @@
+# ThreadSanitizer suppressions for the tests of AStarSearch.
+#
+# The single-producer single-consumer queues of FastFlow are lock-free by
+# design: they read and write the slots and the indices without atomic
+# operations, ordering them with explicit memory barriers, which
+# ThreadSanitizer does not understand. Only the internals of FastFlow are
+# suppressed, so that the code of the library that uses them is checked.
+race:ff::SWSR_Ptr_Buffer
+race:ff::uSWSR_Ptr_Buffer
+race:ff::Buffer_
+race:ff::ff_node
+race:ff::ff_thread
+race:ff::ff_loadbalancer
+race:ff::ff_gatherer

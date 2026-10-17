@@ -1,0 +1,51 @@
+##############################################################################
+################################ makefile-c ##################################
+##############################################################################
+#                                                                            #
+#   complete makefile of AStarSearch                                         #
+#                                                                            #
+#   The makefile defines internally all the external libraries required by   #
+#   the parallel runtimes of AStarSearch: the threads, OpenMP and the        #
+#   headers of FastFlow (the fastflow submodule, or $(FF_ROOT) if set).      #
+#   MPI is not here: what includes HDAStarMPI.h is compiled with mpicxx.     #
+#   Accordingly, all necessary H, -I directives and external libraries are   #
+#   added to the corresponding ASt* macros.                                  #
+#                                                                            #
+#   Input:  $(CC)      = compiler command                                    #
+#           $(SW)      = compiler options                                    #
+#           $(AStSDR)  = the directory where AStarSearch is                  #
+#                                                                            #
+#   Output: $(AStOBJ)  = the final object(s) / library                       #
+#           $(AStLIB)  = external libraries + -L< libdirs >                  #
+#           $(AStH)    = the .h files to include                             #
+#           $(AStINC)  = the -I$( include directories )                      #
+#           $(AStDEF)  = the -D of the runtimes that are there               #
+#                                                                            #
+#                                Donato Meoli                                #
+#                         Dipartimento di Informatica                        #
+#                             Universita' di Pisa                            #
+#                                                                            #
+##############################################################################
+
+# include the makefile of the library - - - - - - - - - - - - - - - - - - - -
+
+include $(AStSDR)/makefile
+
+# the external libraries- - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# FastFlow: its headers only, as system headers, so that their warnings
+# do not drown ours
+FF_ROOT ?= $(AStSDR)/fastflow
+
+# macros to be exported - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# append the external -I directives to AStINC and AStH as defined by the
+# makefile, thus the := assignment has to be used (use GNU make)
+AStINC := $(AStINC) -isystem $(FF_ROOT)
+AStH := $(AStH) $(AStOMPH) $(AStFFH)
+AStDEF = -DASTAR_HAS_OPENMP -DASTAR_HAS_FASTFLOW -DNO_DEFAULT_MAPPING
+
+# external libraries for AStarSearch
+AStLIB = -pthread -fopenmp
+
+############################ End of makefile #################################

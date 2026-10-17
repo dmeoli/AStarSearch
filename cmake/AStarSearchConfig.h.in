@@ -1,0 +1,19 @@
+/** @file
+ * Configuration header for @modName@.
+ *
+ * \author Donato Meoli \n
+ *         Dipartimento di Informatica \n
+ *         Universita' di Pisa \n
+ *
+ * \copyright &copy; by Donato Meoli
+ */
+
+#ifndef __@modMacro@_CONFIG_H
+#define __@modMacro@_CONFIG_H
+
+#define @modMacro@_VERSION       "@PROJECT_VERSION@"
+#define @modMacro@_VERSION_MAJOR "@PROJECT_VERSION_MAJOR@"
+#define @modMacro@_VERSION_MINOR "@PROJECT_VERSION_MINOR@"
+#define @modMacro@_VERSION_PATCH "@PROJECT_VERSION_PATCH@"
+
+#endif

@@ -1,0 +1,147 @@
+# --------------------------------------------------------------------------- #
+#    Continuous integration of AStarSearch                                    #
+#                                                                             #
+#    Every push and pull request builds the library, the examples, the tools  #
+#    and the tester, and runs the tests: with CMake on Linux (gcc and clang), #
+#    macOS and Windows, with the makefiles on Linux, and on Linux once more   #
+#    under AddressSanitizer + UndefinedBehaviorSanitizer and under            #
+#    ThreadSanitizer, which checks the synchronization of the shared-memory   #
+#    searches.                                                                #
+#                                                                             #
+#                                Donato Meoli                                 #
+#                         Dipartimento di Informatica                         #
+#                             Universita' di Pisa                             #
+# --------------------------------------------------------------------------- #
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [ g++, clang++ ]
+    steps:
+      # FastFlow is a submodule
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      # Open MPI for HDAStarMPI, the OpenMP runtime of clang for the OpenMP
+      # runtime (gcc has its own)
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin libomp-dev
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build -L AStarSearch --output-on-failure
+      # the installed package is found by find_package()
+      - name: Install
+        run: |
+          cmake --install build --prefix ${{ runner.temp }}/astar
+          test -f ${{ runner.temp }}/astar/lib/cmake/AStarSearch/AStarSearchConfig.cmake
+
+  makefiles:
+    name: Linux makefiles
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin
+      - name: Examples
+        run: make -C examples -j 4
+      - name: Tools
+        run: make -C tools release mpi -j 2
+      - name: Test
+        run: |
+          make -C test check
+          make -C test check_mpi
+
+  sanitizers:
+    name: Linux ${{ matrix.sanitizer }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ASan and UBSan on all the cases but MPI, whose library is not
+          # instrumented
+          - sanitizer: address
+            flags: -fsanitize=address,undefined -fno-omit-frame-pointer
+            tests: -E mpi
+          # TSan on the searches of the C++ threads and of FastFlow: the
+          # OpenMP runtime of gcc is not instrumented, and would give false
+          # positives
+          - sanitizer: thread
+            flags: -fsanitize=thread
+            tests: -R "thread|fastflow|limits"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DASTAR_WITH_MPI=OFF
+          -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
+          -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.flags }}"
+      - name: Build
+        run: cmake --build build -j 4 --target AStarSearch_test
+      - name: Test
+        env:
+          # the lock-free queues of FastFlow are suppressed [see the file]
+          TSAN_OPTIONS: >-
+            halt_on_error=1 second_deadlock_stack=1
+            suppressions=${{ github.workspace }}/test/tsan.supp
+          UBSAN_OPTIONS: halt_on_error=1 print_stacktrace=1
+        run: >
+          ctest --test-dir build -L AStarSearch --output-on-failure
+          ${{ matrix.tests }}
+
+  macos:
+    name: macOS
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      # Apple clang has no OpenMP runtime of its own: the one of LLVM
+      - name: Dependencies
+        run: brew install open-mpi libomp
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          -DOpenMP_ROOT=$(brew --prefix libomp)
+      - name: Build
+        run: cmake --build build -j 3
+      - name: Test
+        run: ctest --test-dir build -L AStarSearch --output-on-failure
+
+  windows:
+    name: Windows MSVC
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      # FastFlow relies on POSIX, and MPI is left out: the threads and OpenMP
+      - name: Configure
+        run: >
+          cmake -S . -B build -DASTAR_WITH_FASTFLOW=OFF -DASTAR_WITH_MPI=OFF
+      - name: Build
+        run: cmake --build build --config Release -j 4
+      - name: Test
+        run: >
+          ctest --test-dir build -C Release -L AStarSearch --output-on-failure

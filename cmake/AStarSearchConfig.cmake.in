@@ -1,0 +1,36 @@
+# --------------------------------------------------------------------------- #
+#    Package configuration file                                               #
+#                                                                             #
+#    This file contains instructions on how to generate ***Config.cmake,      #
+#    that is, the file that tells CMake how the package should be             #
+#    configured when found by other projects using find_package().            #
+#                                                                             #
+#    ***Targets.cmake (to be found alongside this file) is the target import  #
+#    file that tells where the headers are, and which targets the optional    #
+#    runtimes (OpenMP, MPI, FastFlow) have.                                   #
+#                                                                             #
+#                                Donato Meoli                                 #
+#                         Dipartimento di Informatica                         #
+#                             Universita' di Pisa                             #
+# --------------------------------------------------------------------------- #
+@PACKAGE_INIT@
+get_filename_component(@modName@_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(CMakeFindDependencyMacro)
+
+# ----- Requirements -------------------------------------------------------- #
+find_dependency(Threads)
+if (@OpenMP_CXX_FOUND@)
+    find_dependency(OpenMP COMPONENTS CXX)
+endif ()
+if (@MPI_CXX_FOUND@)
+    find_dependency(MPI COMPONENTS CXX)
+endif ()
+
+# ----- Import targets ------------------------------------------------------ #
+if (NOT TARGET @modNamespace@::@modName@)
+    include("${@modName@_CMAKE_DIR}/@modName@Targets.cmake")
+endif ()
+
+set(@modName@_LIBRARIES @modNamespace@::@modName@)
+
+# --------------------------------------------------------------------------- #

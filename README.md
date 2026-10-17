@@ -1,66 +1,239 @@
-# A* Search [![Build Status](https://api.travis-ci.com/dmeoli/AStarSearch.svg?branch=master)](https://app.travis-ci.com/dmeoli/AStarSearch)
+# AStarSearch
 
-This code is an implementation of the [A* search algorithm](https://en.wikipedia.com/wiki/A*_search_algorithm) developed during the Knowledge 
-Engineering course @ [Department of Computer Science](http://www.uniba.it/ricerca/dipartimenti/informatica) @ [University of Bari "Aldo Moro"](http://www.uniba.it/) under the supervision of prof. [Floriana Esposito](http://lacam.di.uniba.it/people/FlorianaEsposito.html).
+AStarSearch is a C++20 library for the sequential and parallel A*
+search [9] of an implicit state-space graph, i.e., a graph given by an
+initial state, a goal predicate and a procedure that generates the
+successors of a state (cf. [10]). With each successor the procedure also
+gives the cost of the edge and an estimate h of the distance to a goal. The
+parallel searches follow the taxonomy of the survey of Fukunaga et al. [1],
+and they run on C++ threads, OpenMP, FastFlow [12] and MPI; hence, one can
+compare the same algorithm across runtimes, and the same runtime across
+algorithms.
 
-##  TODO
+## The search problem
 
-  - [ ] NQueens
+We are concerned with finding a path of minimum cost from the initial state
+to a goal state, in a graph with nonnegative edge costs, when h is
+admissible (it never overestimates the cost of reaching a goal). For the
+searches that do not reopen the closed nodes we also assume that h is
+consistent, i.e., h(u) <= c(u, v) + h(v) for each edge (u, v). Under these
+conditions the searches of the library return an optimal path (cf. [2] for
+HDA* and [3] for Safe PBNF). Without consistency the sequential A* is still
+exact, since it reopens a closed node reached through a cheaper path; the
+parallel searches, however, may pay several re-expansions for the same node.
 
-After three years from its sequential development, I provide different 
-parallelized versions of the algorithm described in [1 - Algorithm 2] using 
-different concurrent libraries, i.e.:
+All the algorithms are templates over the problem, which is described by a
+type satisfying the concept `Domain` of `include/Domain.h`. Such a type
+gives `state_type` and an arithmetic `cost_type`, together with the methods
+`initial_state()`, `is_goal( s )`, `heuristic( s )`, `hash( s )` and
+`for_each_successor( s , h_s , f )`; the latter calls `f( t , c , h_t )` for
+each successor t of s. Note that h(s) is passed in, so that h(t) can be
+computed incrementally when the heuristic allows it (as the Manhattan
+distance of the sliding-tile puzzle does). Since all calls are resolved at
+compile time, no virtual function is paid in the inner loop, which is the
+first design choice of the fast implementation of Burns et al. [4].
 
-  - [ ] [C++ Standard Library](https://en.cppreference.com/w/cpp/thread)
-  - [ ] [FastFlow](http://calvados.di.unipi.it/)
-  - [ ] [OpenMP](https://www.openmp.org/)
+Some algorithms need more than a `Domain`, and each extra requirement is a
+refinement of the concept. Thus, `FeatureDomain` describes a state as a set
+of propositions (as Zobrist hashing requires), and `AbstractFeatureDomain`
+adds a projection of the features, for Abstract Zobrist hashing [5].
+`AbstractStateDomain` and `NBlockDomain` give an abstraction of the state
+space (for AHDA* and PBNF [3]), `PairwiseDomain` a heuristic between any two
+states (for PA*SE [6]), and `PerfectHashDomain` an injective map of the
+states to the integers. As examples, the library provides the sliding-tile
+puzzle of any size with the Manhattan distance (`SlidingTile.h`, which
+satisfies all of the concepts) and pathfinding with 4 or 8 moves on a grid
+with cell costs (`Grid.h`), read from a Moving AI map or generated at
+random. Also, `ExplicitGraph.h` holds a weighted graph given by its arcs,
+which serves for the route-finding problem on the map of Romania of Russell
+and Norvig.
 
-in the context of Parallel
-and Distributed Systems course @ [Department of Computer Science](https://www.di.unipi.it/en/)
-@ [University of Pisa](https://www.unipi.it/index.php/english) under the
-supervision of prof. [Marco Danelutto](http://calvados.di.unipi.it/paragroup/danelutto/)
-and prof. [Massimo Torquati](http://calvados.di.unipi.it/paragroup/torquati/).
+## The algorithms
 
-## Running the software
+We start from the sequential search (`astar( d )` in `AStar.h`), which is A*
+with the goal test at the expansion and a node reopened when a cheaper path
+to it is found. Ties on f are broken in favour of the larger g, which on
+domains with many states in the last f layer usually reaches the goal much
+earlier. The parallel searches are the following, each one with the
+reference for its correctness and its typical behavior.
 
-Getting the whole project and all the subprojects updated at the latest 
-version can be done with:
+- `SPAStar` (`SPAStar.h`) is the Simple Parallel A* of Algorithm 2 of [1],
+  in which the workers share one OPEN and one CLOSED list, protected by
+  locks. It is the baseline of the survey, and it is not expected to scale
+  beyond a few threads, since each expansion goes through the shared lists.
+- `HDAStar` (`HDAStar.h`) is Hash Distributed A* [2]: a distribution
+  function assigns each state to a worker, which keeps OPEN and CLOSED for
+  the states it owns and receives, packed in batches, those generated by
+  the others. The search ends when no worker has a node with f smaller than
+  the incumbent and no batch is travelling. The distribution is a template
+  parameter (`Distribution.h`), and the library provides those compared by
+  Jinnai and Fukunaga [5], i.e., Zobrist hashing (HDA*[Z]), Abstract
+  Zobrist hashing (AZHDA*), Zobrist hashing of an abstract state (AHDA*
+  [3]) and the perfect hash modulo the number of workers (HDA*[P], the
+  "bad" case of [3]). Furthermore, it provides the hash of the closed list
+  and, as the baseline without duplicate detection across workers, a random
+  assignment.
+- `HDAStarMPI` (`HDAStarMPI.h`) is the same search with one MPI process per
+  worker, a nonblocking exchange of the batches and the termination
+  detection of Mattern [11] (four counters reduced with `MPI_Iallreduce`).
+  At the end, the path is rebuilt state by state, each one sent by the
+  process that holds it.
+- `SafePBNF` (`SafePBNF.h`) is the livelock-free Parallel Best-NBlock-First
+  search of Burns et al. [3], in which an abstraction partitions the state
+  space into nblocks. A worker expands for a while the nodes of an nblock
+  whose duplicate detection scope (its abstract successors) is not in use
+  by another worker; hence, no lock is taken on the single node.
+- `PASE` (`PASE.h`) is the Parallel A* for Slow Expansions of Phillips et
+  al. [6], which expands in parallel only the states that the pairwise
+  heuristic proves not to be reachable through a cheaper path from a state
+  still in OPEN. It may pay off only when an expansion costs much more than
+  the bookkeeping; `SlowDomain.h` adds a given amount of artificial work per
+  expansion to study this regime.
+- `FarmAStar` (`FarmAStar.h`) is a centralized parallel A* written as a
+  FastFlow farm with feedback, i.e., the master-worker scheme of [1]: a
+  master holds OPEN and CLOSED, and the workers generate the successors of
+  the nodes it sends them.
+
+The shared-memory searches are templates also over the runtime that starts
+the workers, i.e., `ThreadRuntime`, `OpenMPRuntime` (`OpenMPRuntime.h`) or
+`FastFlowRuntime` (`FastFlowRuntime.h`); the latter runs HDA* as a mesh of
+FastFlow single-producer single-consumer queues. Their options are in
+`ParallelOptions`: the number of workers, the size of a batch, the number of
+expansions between two flushes of a partially filled batch and the seed of
+the distribution.
+
+## The data structures
+
+OPEN is either a 4-ary heap, for any cost type, or a two-level bucket queue
+(on f first, then on g) for integer costs, which [4] reports to be somewhat
+faster than a heap on the sliding-tile puzzles. Neither one supports
+decrease-key: an entry made stale by a cheaper path is skipped when it
+surfaces. CLOSED (`NodeTable.h`) is an open-addressing hash table that
+stores the hash of a state next to its node, so that most probes do not
+compare the states, and spreads the slots by Fibonacci hashing; the nodes
+are allocated from an arena. Both the table and the arena are requested
+from the operating system as transparent huge pages, where available. In
+the sequential search the slots of the successors are also prefetched
+before being probed, since on large instances most probes are cache misses
+(the parallel searches do the same with the batches they receive). Each
+search returns a `Solution` holding the status (solved, unsolvable or
+stopped at the node limit), the cost, the path and the counters of the
+search; for the parallel ones, these include the load balance and the
+communication overhead of [2].
+
+## Building and using the library
+
+The library needs only a C++20 compiler, together with CMake 3.21 or GNU
+make. OpenMP, MPI and FastFlow are optional, and each of them is used if it
+is found (FastFlow is a git submodule, which CMake fetches when the
+directory is empty). With CMake one has
 
 ```sh
 git clone --recurse-submodules https://github.com/dmeoli/AStarSearch.git
-git submodule foreach --recursive "git checkout develop || git checkout master"
-git submodule foreach --recursive "git pull"
+cmake -S AStarSearch -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build
+cmake --install build --prefix <prefix>
 ```
 
-To build the source code and run the code you just type into the terminal:
+where `ASTAR_WITH_OPENMP`, `ASTAR_WITH_MPI` and `ASTAR_WITH_FASTFLOW` (all
+`ON` by default) can exclude a runtime, and `ASTAR_BUILD_EXAMPLES` and
+`ASTAR_BUILD_TOOLS` the examples and the benchmark. A CMake project then
+uses the library with
 
-```sh
-$ make
+```cmake
+find_package(AStarSearch REQUIRED)
+target_link_libraries(myTarget PRIVATE AStarSearch::AStarSearch)
 ```
 
-or, using CMake:
+adding `AStarSearch::OpenMP`, `AStarSearch::MPI` or `AStarSearch::FastFlow`
+for the corresponding runtime. Since the searches are templates over the
+`Domain`, they are in the headers, and the library (`src`) holds only what
+does not depend on it, i.e., the grid maps, the random tables of Zobrist
+hashing, the measures of a search and the parts that depend on the
+operating system. Without CMake, the `makefile` in the root builds the
+objects and exports them together with the include directive and the list
+of the headers, in the style of the modules of SMS++; in `examples`, `test`
+and `tools` a makefile builds the corresponding programs, and in `test` the
+targets `check` and `check_mpi` also run the tests.
 
-```sh
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make
+As an example, a minimal program that solves the instance 1 of Korf [7]
+sequentially, and then with HDA* and Abstract Zobrist hashing on 8 threads,
+reads
+
+```cpp
+#include "AStarSearch.h"
+using namespace AStar_di_unipi_it;
+
+int main( void )
+{
+ const FifteenPuzzle d( FifteenPuzzle::parse(
+                         "14 13 15 7 11 12 9 5 6 0 2 1 4 8 10 3" ) );
+ const auto s = astar( d );
+ ParallelOptions o;
+ o.threads = 8;
+ const AbstractZobristDistribution< FifteenPuzzle > az( d );
+ const auto p = HDAStar< FifteenPuzzle , decltype( az ) >( d , az , o )
+                 .solve();
+ return( ( s.cost == 57 ) && ( p.cost == 57 ) ? 0 : 1 );
+ }
 ```
 
-and then:
+## The examples and the benchmark
 
-```sh
-$ ./FindPath
-$ ./8Puzzle {134862705|281043765|281463075|567408321|etc.}
-$ ./15Puzzle {10 2 7 1 14 0 8 4 13 5 15 12 9 11 3 6|etc.}
-$ ./MinPathToBucharest {Arad|Bucharest|Craiova|Drobeta|Eforie|Fagaras|Giurgiu|Hirsova|Iasi|Lugoj|Mehadia|Neamt|Oradea|Pitesti|RimnicuVilcea|Sibiu|Timisoara|Urziceni|Vaslui|Zerind}
-```
+In `examples`, four programs solve the 8-puzzle (`8Puzzle`), the 15-puzzle
+(`15Puzzle`, with `-t <threads>` for HDA*), a path on a weighted grid
+(`FindPath`) and the route to Bucharest from a city of the map of Romania
+(`MinPathToBucharest`). With `-n`, the two puzzles use the sequence score of
+Nilsson [8] instead of the Manhattan distance; since this heuristic is not
+admissible, the path found is not, in general, an optimal one. In `tools`,
+`AStarBench` runs any search, runtime and distribution of the library on
+the 100 instances of Korf (`data/15-puzzle/korf100.txt`), on the 8-puzzle
+and on the grids, and it prints a line of CSV per run with the cost, the
+counters and the time; `AStarBenchMPI` is its MPI counterpart, to be started
+with `mpirun`. If the environment variable `ASTAR_PIN` is set, the i-th
+worker is pinned to the i-th CPU of the affinity mask of the process (as
+given, e.g., by `numactl --physcpubind` or `taskset`). On machines with
+several sockets this is usually needed for the timings to be repeatable.
 
-## License [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## License
 
-This software is released under the MIT License. See the [LICENSE](LICENSE) file for details.
+This software is released under the MIT License (see the file
+[LICENSE](LICENSE)). Its sequential version was first written for the
+course of Knowledge Engineering of prof. Floriana Esposito at the University
+of Bari, and the parallel ones for the course of Parallel and Distributed
+Systems of prof. Marco Danelutto and prof. Massimo Torquati at the
+University of Pisa.
 
 ## References
 
-[1] Alex Fukunaga, Adi Botea, Yuu Jinnai, and Akihiro Kishimoto, [*A Survey 
-of Parallel A**](https://arxiv.org/abs/1708.05296).
+1. A. Fukunaga, A. Botea, Y. Jinnai and A. Kishimoto, *A Survey of Parallel
+   A\**, arXiv:1708.05296, 2017.
+2. A. Kishimoto, A. Fukunaga and A. Botea, *Evaluation of a simple, scalable,
+   parallel best-first search strategy*, Artificial Intelligence 195,
+   222-248, 2013.
+3. E. Burns, S. Lemons, W. Ruml and R. Zhou, *Best-first heuristic search for
+   multicore machines*, Journal of Artificial Intelligence Research 39,
+   689-743, 2010.
+4. E. Burns, M. Hatem, M. J. Leighton and W. Ruml, *Implementing fast
+   heuristic search code*, Proceedings of the Symposium on Combinatorial
+   Search (SoCS), 2012.
+5. Y. Jinnai and A. Fukunaga, *On work distribution functions for parallel
+   best-first search*, Journal of Artificial Intelligence Research 60,
+   491-548, 2017.
+6. M. Phillips, M. Likhachev and S. Koenig, *PA\*SE: Parallel A\* for slow
+   expansions*, Proceedings of the International Conference on Automated
+   Planning and Scheduling (ICAPS), 2014.
+7. R. E. Korf, *Depth-first iterative-deepening: an optimal admissible tree
+   search*, Artificial Intelligence 27, 97-109, 1985.
+8. N. J. Nilsson, *Principles of Artificial Intelligence*, Tioga, 1980.
+9. P. E. Hart, N. J. Nilsson and B. Raphael, *A formal basis for the
+   heuristic determination of minimum cost paths*, IEEE Transactions on
+   Systems Science and Cybernetics 4(2), 100-107, 1968.
+10. S. Edelkamp and S. Schroedl, *Heuristic Search: Theory and
+    Applications*, Morgan Kaufmann, 2012.
+11. F. Mattern, *Algorithms for distributed termination detection*,
+    Distributed Computing 2(3), 161-175, 1987.
+12. M. Aldinucci, M. Danelutto, P. Kilpatrick and M. Torquati, *FastFlow:
+    high-level and efficient streaming on multi-core*, in Programming
+    Multi-core and Many-core Computing Systems, Wiley, 2017.
