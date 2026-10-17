@@ -126,18 +126,25 @@ class AStar {
    // first the successors, with the slots of their lookups prefetched,
    // then the lookups, whose cache misses thus overlap
    kids.clear();
-   f_domain.for_each_successor( n->state , n->h ,
-                                [ & ]( const State & t , Cost c , Cost ht ) {
+   const auto kid = [ & ]( const State & t , Cost c , Cost ht ,
+                           std::uint8_t op ) {
     const std::uint64_t hash = f_domain.hash( t );
     table.prefetch( hash );
-    kids.push_back( Kid{ t , c , ht , hash } );
-    } );
+    kids.push_back( Kid{ t , c , ht , hash , op } );
+    };
+   if constexpr( OperatorDomain< D > )
+    f_domain.for_each_successor( n->state , n->h , n->op , kid );
+   else
+    f_domain.for_each_successor( n->state , n->h ,
+                                 [ & ]( const State & t , Cost c , Cost ht ) {
+     kid( t , c , ht , no_op );
+     } );
    st.generated += kids.size();
    for( const Kid & k : kids ) {
     const Cost g = n->g + k.c;
     auto [ m , fresh ] = table.find_or_insert( k.s , k.hash , [ & ] {
      NodeT * x = pool.allocate();
-     *x = NodeT{ k.s , g , k.h , n , false , false };
+     *x = NodeT{ k.s , g , k.h , n , false , false , k.op };
      return( x );
      } );
     if( fresh )
@@ -146,6 +153,7 @@ class AStar {
      if( g < m->g ) {     // a cheaper path: reopen
       m->g = g;
       m->parent = n;
+      m->op = k.op;
       m->closed = false;
       open.push( m );
       }
@@ -176,6 +184,7 @@ class AStar {
   Cost c;
   Cost h;
   std::uint64_t hash;
+  std::uint8_t op;
   };
 
  const D & f_domain;                                 ///< the Domain

@@ -64,11 +64,10 @@ static GridMap weighted( int w , int h , double p , unsigned long long seed )
 {
  GridMap m( w , h );
  std::mt19937_64 gen( seed );
- std::bernoulli_distribution wall( p );
- std::uniform_int_distribution< int > cost( 1 , 5 );
  for( int y = 0 ; y < h ; ++y )
   for( int x = 0 ; x < w ; ++x )
-   m.set_cost( x , y , wall( gen ) ? 0 : cost( gen ) );
+   m.set_cost( x , y , random_unit( gen ) < p
+                        ? 0 : 1 + int( random_below( gen , 5 ) ) );
  return( m );
  }
 

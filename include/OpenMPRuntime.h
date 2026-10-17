@@ -47,6 +47,24 @@ namespace AStar_di_unipi_it
 {
 
 /*--------------------------------------------------------------------------*/
+/// initializes an OpenMP lock
+/** The default lock of the OpenMP runtime of LLVM is a queuing lock, which
+ * hands the lock over in the order of arrival: with more threads than
+ * cores the next thread in the queue is often not running, and the threads
+ * form a convoy (a search of a few seconds took more than 15 minutes on a
+ * runner with 3 cores). There the lock is asked as a test-and-set one; the
+ * runtime of gcc, which does not implement the hints, keeps its own. */
+
+inline void init_omp_lock( omp_lock_t * l )
+{
+ #if defined( KMP_VERSION_MAJOR )
+  omp_init_lock_with_hint( l , omp_sync_hint_uncontended );
+ #else
+  omp_init_lock( l );
+ #endif
+ }
+
+/*--------------------------------------------------------------------------*/
 /*------------------------- CLASS OmpLockChannels --------------------------*/
 /*--------------------------------------------------------------------------*/
 /// one inbox per worker, protected by an OpenMP lock
@@ -60,7 +78,7 @@ class OmpLockChannels {
 
  explicit OmpLockChannels( unsigned p ) : f_p( p ) , v_in( new Inbox[ p ] ) {
   for( unsigned i = 0 ; i < p ; ++i )
-   omp_init_lock( & v_in[ i ].l );
+   init_omp_lock( & v_in[ i ].l );
   }
 
  ~OmpLockChannels() {
@@ -153,7 +171,7 @@ class OmpLock {
 
  public:
 
- OmpLock( void ) { omp_init_lock( & f_l ); }
+ OmpLock( void ) { init_omp_lock( & f_l ); }
  ~OmpLock() { omp_destroy_lock( & f_l ); }
  OmpLock( const OmpLock & ) = delete;
  OmpLock & operator=( const OmpLock & ) = delete;

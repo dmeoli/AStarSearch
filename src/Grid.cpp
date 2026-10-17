@@ -28,6 +28,8 @@
 
 #include "Grid.h"
 
+#include "SearchUtils.h"
+
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -53,9 +55,8 @@ GridMap GridMap::random( int width , int height , double p ,
 {
  GridMap m( width , height );
  std::mt19937_64 gen( seed );
- std::bernoulli_distribution blocked( p );
  for( auto & c : m.v_cost )
-  c = blocked( gen ) ? 0 : 1;
+  c = random_unit( gen ) < p ? 0 : 1;
  m.set_cost( 0 , height - 1 , 1 );
  m.set_cost( width - 1 , height - 1 , 1 );
  return( m );

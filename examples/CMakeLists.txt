@@ -52,8 +52,8 @@ if (BUILD_TESTING)
     example_test(waterjugs-none "cannot measure 3" WaterJugs 3 2 6)
     example_test(tsp-10 "" TravelingSalesman 10 1)
     example_test(tsp-14 "" TravelingSalesman 14 3)
-    example_test(findpath-4 "cost: +103\n" FindPath)
-    example_test(findpath-8 "cost: +89\\.5" FindPath -8)
+    example_test(findpath-4 "cost: +94\n" FindPath)
+    example_test(findpath-8 "cost: +76\\.6" FindPath -8)
 endif ()
 
 # --------------------------------------------------------------------------- #

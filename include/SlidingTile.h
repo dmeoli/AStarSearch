@@ -182,6 +182,27 @@ class SlidingTile {
    }
   }
 
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// as above, but without the successor that op, the cell where the blank
+ /// was, leads back to; the operator of a successor is the cell of the
+ /// blank in s
+
+ template< class F >
+ void for_each_successor( state_type s , cost_type h , std::uint8_t op ,
+                          F && f ) const {
+  const int b = blank( s );
+  const Moves & o = v_moves[ b ];
+  for( int i = 0 ; i < o.n ; ++i ) {
+   const int c = o.cell[ i ];
+   if( c == op )
+    continue;
+   const int t = tile( s , c );
+   const state_type child = ( s & ~( state_type( 0xF ) << ( 4 * c ) ) )
+                            | ( state_type( t ) << ( 4 * b ) );
+   f( child , 1 , h + v_md[ t ][ b ] - v_md[ t ][ c ] , std::uint8_t( b ) );
+   }
+  }
+
 /*---------------------- FEATURES FOR ZOBRIST HASHING ----------------------*/
  /// the number of features: one per pair ( tile , cell )
 

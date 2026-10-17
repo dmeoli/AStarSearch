@@ -182,11 +182,10 @@ int main( int argc , char * argv[] )
   if( ( n < 2 ) || ( n > 16 ) )
    throw( std::invalid_argument( "2 to 16 cities" ) );
   std::mt19937_64 gen( seed );
-  std::uniform_real_distribution< double > unit( 0 , 1 );
   std::vector< double > x( n ) , y( n );
   for( int c = 0 ; c < n ; ++c ) {
-   x[ c ] = unit( gen );
-   y[ c ] = unit( gen );
+   x[ c ] = random_unit( gen );
+   y[ c ] = random_unit( gen );
    }
   std::vector< std::vector< double > > d( n , std::vector< double >( n ) );
   for( int a = 0 ; a < n ; ++a )

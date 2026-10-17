@@ -29,6 +29,8 @@
 
 #include <vector>
 
+#include "Domain.h"
+
 #include "SearchUtils.h"
 
 /*--------------------------------------------------------------------------*/
@@ -47,7 +49,8 @@ namespace AStar_di_unipi_it
  * whether the Node is in CLOSED, i.e., it has been expanded with its current
  * g; a Node reached again through a cheaper path is moved back to OPEN by
  * clearing it [see line 11 of Algorithm 1 of Fukunaga et al., 2017], while
- * expanded stays set, so that the re-expansions can be counted. */
+ * expanded stays set, so that the re-expansions can be counted. The field
+ * op is used by the OperatorDomain only, and fits in the padding. */
 
 template< class State , class Cost >
 struct Node {
@@ -58,6 +61,7 @@ struct Node {
  Node * parent;   ///< the predecessor on that path (nullptr at the root)
  bool closed;     ///< true if expanded with the current g
  bool expanded;   ///< true if ever expanded
+ std::uint8_t op = no_op;  ///< the operator that generated the state
 
  /// the estimate f = g + h of the cost of a solution through the Node
  [[nodiscard]] Cost f( void ) const noexcept { return( g + h ); }

@@ -183,11 +183,10 @@ static int table( const Board & goal , int samples )
  std::mt19937_64 gen( 1 );
  std::cout << " d    nodes h1    nodes h2     b* h1   b* h2" << std::endl;
  for( int d = 2 ; ( d <= 24 ) && ( d < int( lay.size() ) ) ; d += 2 ) {
-  std::uniform_int_distribution< std::size_t > pick( 0 ,
-                                                     lay[ d ].size() - 1 );
   double n1 = 0 , n2 = 0;
   for( int k = 0 ; k < samples ; ++k ) {
-   const Board start = unpack( lay[ d ][ pick( gen ) ] );
+   const Board start = unpack( lay[ d ][ random_below( gen ,
+                                                        lay[ d ].size() ) ] );
    n1 += double( astar( MisplacedTiles( start , goal ) ).stats.generated );
    n2 += double( astar( EightPuzzle( start , goal ) ).stats.generated );
    }

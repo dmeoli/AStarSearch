@@ -31,6 +31,8 @@
 
 #include <cstddef>
 
+#include <cstdint>
+
 #include <limits>
 
 #include <new>
@@ -146,6 +148,28 @@ inline void prefetch( const void * p ) noexcept
  #else
   ( void ) p;
  #endif
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/// a real number in [ 0 , 1 ) from the next word of a 64-bit generator
+/** The distributions of <random> are not the same on every standard
+ * library, while the words of std::mt19937_64 are; this and random_below()
+ * draw from those words directly, so that a seed gives the same instance on
+ * every platform. */
+
+template< class Gen >
+[[nodiscard]] double random_unit( Gen & gen )
+{
+ return( double( std::uint64_t( gen() ) >> 11 ) * 0x1.0p-53 );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/// an integer in [ 0 , n ) from the next word of a 64-bit generator, n > 0
+
+template< class Gen >
+[[nodiscard]] std::uint64_t random_below( Gen & gen , std::uint64_t n )
+{
+ return( std::uint64_t( gen() ) % n );
  }
 
 /*--------------------------------------------------------------------------*/
