@@ -2,8 +2,8 @@
 ################################ makefile ####################################
 ##############################################################################
 #                                                                            #
-#   makefile of the examples of AStarSearch: 8Puzzle, 15Puzzle, FindPath     #
-#   and MinPathToBucharest                                                   #
+#   makefile of the examples of AStarSearch: 8Puzzle, 15Puzzle, FindPath,    #
+#   RouteFinding, NQueens, WaterJugs and TravelingSalesman                   #
 #                                                                            #
 #                                Donato Meoli                                #
 #                         Dipartimento di Informatica                        #
@@ -15,7 +15,8 @@
 DIR = .
 
 # the programs
-NAMES = 8Puzzle 15Puzzle FindPath MinPathToBucharest
+NAMES = 8Puzzle 15Puzzle FindPath RouteFinding NQueens WaterJugs \
+        TravelingSalesman
 
 # common flags
 COMMON_SW = -std=c++20 -Wall -Wextra

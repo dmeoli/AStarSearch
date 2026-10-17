@@ -1,0 +1,8 @@
+# LeakSanitizer suppressions for the tests of AStarSearch.
+#
+# In blocking mode, the load balancer of a FastFlow farm allocates with
+# malloc() the mutex and the condition variable on which its input waits,
+# and never frees them; FarmAStar uses the blocking mode when the CPUs are
+# fewer than its threads, as on the small runners of the CI. Only that
+# allocation of FastFlow is suppressed.
+leak:ff::ff_loadbalancer::init_input_blocking

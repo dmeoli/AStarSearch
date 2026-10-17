@@ -2,16 +2,22 @@
 /*--------------------------- File FindPath.cpp ----------------------------*/
 /*--------------------------------------------------------------------------*/
 /** @file
- * Finds a shortest path with A* on a 20 x 20 maze, where '9' is a wall and
- * the other cells cost what they say to leave
+ * Pathfinding with A* on a grid whose cells cost what one pays to leave
+ * them, and draws the path on the map.
  *
- * Usage:   FindPath [<start column> <start row> <goal column> <goal row>]
+ * Usage:   FindPath [-8] [-f <map>] [-r <W>x<H>:<p>:<seed>]
+ *                   [<sx> <sy> <gx> <gy>]
  *
- * Example: FindPath 3 6 17 15
+ * Example: FindPath -r 40x20:0.25:7
  *
- * Without the arguments the start and the goal are free cells drawn at
- * random. The start and the goal may lie in a wall, which costs 9 to
- * leave.
+ * The map is read from a file in the format of the Moving AI benchmarks
+ * (-f), whose free cells cost 1, or it is drawn at random (-r, default
+ * 30x15:0.2:1): each cell is a wall with probability p and otherwise costs
+ * 1 , ... , 5 to leave, uniformly. The moves are 4, or 8 with -8, in which
+ * case a diagonal move costs sqrt( 2 ) times the cell left. The start and
+ * the goal default to the bottom-left and the bottom-right cells, which are
+ * then kept free. In the drawing, '#' is a wall, a digit the cost of a
+ * cell, '*' the path, 'S' the start and 'G' the goal.
  *
  * \author Donato Meoli \n
  *         Dipartimento di Informatica \n
@@ -23,11 +29,21 @@
 /*-------------------------------- INCLUDES --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+#include <cstdio>
+
 #include <cstdlib>
+
+#include <cstring>
+
+#include <fstream>
 
 #include <iostream>
 
 #include <random>
+
+#include <string>
+
+#include <vector>
 
 #include "AStar.h"
 
@@ -40,72 +56,105 @@
 using namespace AStar_di_unipi_it;
 
 /*--------------------------------------------------------------------------*/
+/*------------------------------- FUNCTIONS --------------------------------*/
+/*--------------------------------------------------------------------------*/
+// a w x h map whose cells are walls with probability p, else cost 1 to 5
+
+static GridMap weighted( int w , int h , double p , unsigned long long seed )
+{
+ GridMap m( w , h );
+ std::mt19937_64 gen( seed );
+ std::bernoulli_distribution wall( p );
+ std::uniform_int_distribution< int > cost( 1 , 5 );
+ for( int y = 0 ; y < h ; ++y )
+  for( int x = 0 ; x < w ; ++x )
+   m.set_cost( x , y , wall( gen ) ? 0 : cost( gen ) );
+ return( m );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// solves the grid with Moves moves and draws the path on the map
+
+template< int Moves >
+static int solve( GridMap m , int sx , int sy , int gx , int gy )
+{
+ const Grid< Moves > g( m , sx , sy , gx , gy );
+ const auto sol = astar( g );
+ if( ! sol.solved() ) {
+  std::cout << "no path" << std::endl;
+  return( 1 );
+  }
+ const int w = m.width();
+ std::vector< std::string > rows( m.height() , std::string( w , ' ' ) );
+ for( int y = 0 ; y < m.height() ; ++y )
+  for( int x = 0 ; x < w ; ++x )
+   rows[ y ][ x ] = m.cost( x , y ) ? char( '0' + m.cost( x , y ) % 10 ) : '#';
+ for( auto s : sol.path )
+  rows[ s / w ][ s % w ] = '*';
+ rows[ sy ][ sx ] = 'S';
+ rows[ gy ][ gx ] = 'G';
+ for( const auto & r : rows )
+  std::cout << r << std::endl;
+ std::cout << "moves:    " << sol.path.size() - 1 << std::endl
+           << "cost:     " << sol.cost << std::endl
+           << "expanded: " << sol.stats.expanded << std::endl;
+ return( 0 );
+ }
+
+/*--------------------------------------------------------------------------*/
 /*---------------------------------- MAIN ----------------------------------*/
 /*--------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
 {
- static const char * maze[ 20 ] = {
-  "11111111111111111111" , "19999999999999999991" ,
-  "19911999191919199911" , "19911999191919199911" ,
-  "19111199191911119911" , "19119111191111911111" ,
-  "19999111111999911111" , "19999999911199999991" ,
-  "19111111111911111111" , "19199999991199999991" ,
-  "19111191191111111111" , "19999919191999991111" ,
-  "19191999191919199911" , "19191999191919199911" ,
-  "19111199191911119911" , "19119111191111911111" ,
-  "19999111111999911111" , "11999999911199919999" ,
-  "19111111111911111111" , "11111111111111111111" };
-
- GridMap m( 20 , 20 );
- for( int y = 0 ; y < 20 ; ++y )
-  for( int x = 0 ; x < 20 ; ++x )
-   m.set_cost( x , y , maze[ y ][ x ] == '9' ? 0 : maze[ y ][ x ] - '0' );
-
- int sx , sy , gx , gy;
- if( argc == 5 ) {
-  sx = std::atoi( argv[ 1 ] );
-  sy = std::atoi( argv[ 2 ] );
-  gx = std::atoi( argv[ 3 ] );
-  gy = std::atoi( argv[ 4 ] );
-  }
- else {
-  std::mt19937 gen( std::random_device{}() );
-  do {
-   sx = int( gen() % 20 );
-   sy = int( gen() % 20 );
-   } while( ! m.cost( sx , sy ) );
-  do {
-   gx = int( gen() % 20 );
-   gy = int( gen() % 20 );
-   } while( ! m.cost( gx , gy ) );
-  }
-
- // as in the original example, the start and the goal may lie in a wall,
- // which is then left (or entered) at the cost of the wall, 9
- if( ( sx >= 0 ) && ( sx < 20 ) && ( sy >= 0 ) && ( sy < 20 ) &&
-     ! m.cost( sx , sy ) )
-  m.set_cost( sx , sy , 9 );
- if( ( gx >= 0 ) && ( gx < 20 ) && ( gy >= 0 ) && ( gy < 20 ) &&
-     ! m.cost( gx , gy ) )
-  m.set_cost( gx , gy , 9 );
-
  try {
-  const Grid< 4 > g( m , sx , sy , gx , gy );
-  const auto sol = astar( g );
-  if( ! sol.solved() ) {
-   std::cout << "Search terminated. Did not find goal state!" << std::endl;
-   return( 1 );
+  bool eight = false;
+  std::string file , random = "30x15:0.2:1";
+  std::vector< int > pts;
+  for( int i = 1 ; i < argc ; ++i )
+   if( ! std::strcmp( argv[ i ] , "-8" ) )
+    eight = true;
+   else
+    if( ! std::strcmp( argv[ i ] , "-f" ) && ( i + 1 < argc ) )
+     file = argv[ ++i ];
+    else
+     if( ! std::strcmp( argv[ i ] , "-r" ) && ( i + 1 < argc ) )
+      random = argv[ ++i ];
+     else
+      pts.push_back( std::atoi( argv[ i ] ) );
+  if( ! ( pts.empty() || ( pts.size() == 4 ) ) )
+   throw( std::invalid_argument( "the start and the goal need 4 numbers" ) );
+
+  GridMap m;
+  if( ! file.empty() ) {
+   std::ifstream in( file );
+   if( ! in )
+    throw( std::invalid_argument( "cannot read " + file ) );
+   m = GridMap::read_movingai( in );
    }
-  std::cout << "Search found goal state..." << std::endl
-            << "Displaying solution:" << std::endl;
-  for( auto s : sol.path )
-   std::cout << "Node position: (" << s % 20 << "," << s / 20 << ")"
-             << std::endl;
-  std::cout << "Solution steps: " << sol.path.size() - 1 << std::endl
-            << "Solution cost: " << sol.cost << std::endl
-            << "Search steps: " << sol.stats.expanded << std::endl;
-  return( 0 );
+  else {
+   int w , h;
+   double p;
+   unsigned long long seed;
+   if( std::sscanf( random.c_str() , "%dx%d:%lf:%llu" , & w , & h , & p ,
+                    & seed ) != 4 )
+    throw( std::invalid_argument( "-r wants <W>x<H>:<p>:<seed>" ) );
+   m = weighted( w , h , p , seed );
+   }
+
+  int sx = 0 , sy = m.height() - 1 , gx = m.width() - 1 , gy = sy;
+  if( pts.empty() ) {
+   m.set_cost( sx , sy , 1 );
+   m.set_cost( gx , gy , 1 );
+   }
+  else {
+   sx = pts[ 0 ];
+   sy = pts[ 1 ];
+   gx = pts[ 2 ];
+   gy = pts[ 3 ];
+   }
+  return( eight ? solve< 8 >( m , sx , sy , gx , gy )
+                : solve< 4 >( m , sx , sy , gx , gy ) );
   }
  catch( std::exception & e ) {
   std::cerr << "FindPath: " << e.what() << std::endl;

@@ -260,7 +260,9 @@ class PASE {
      } );
 
     guard.lock();
-    for( const auto & [ t , gt , ht ] : succ ) {
+    for( const auto & sc : succ ) {    // no structured binding: OpenMP
+     const State & t = std::get< 0 >( sc );     // cannot capture one
+     const Cost gt = std::get< 1 >( sc ) , ht = std::get< 2 >( sc );
      ++f_st.generated;
      auto [ x , fresh ] = f_sh.table.find_or_insert( t ,
                                                      f_a.f_domain.hash( t ) ,

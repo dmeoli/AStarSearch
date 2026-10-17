@@ -50,19 +50,20 @@ foreach (case ${cases})
              COMMAND ${modName}_test ${case} ${dataDir})
 endforeach ()
 
-# The MPI case runs on 1, 2 and 4 processes; --oversubscribe lets Open MPI
-# start more processes than the cores of a small runner.
+# The MPI case runs on 1, 2 and 4 processes; the environment lets Open MPI
+# (4 and 5) start more processes than the cores of a small runner, and the
+# other implementations ignore it.
 if (TARGET ${modName}_MPI)
-    set(mpiFlags ${MPIEXEC_PREFLAGS})
-    if (MPIEXEC_EXECUTABLE MATCHES "mpirun|mpiexec" AND
-            MPI_CXX_LIBRARY_VERSION_STRING MATCHES "Open MPI")
-        list(APPEND mpiFlags --oversubscribe)
-    endif ()
+    set(mpiOversubscribe
+            "OMPI_MCA_rmaps_base_oversubscribe=1"
+            "PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe")
     foreach (np 1 2 4)
         add_test(NAME ${modName}.mpi-${np}
                  COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${np}
-                         ${mpiFlags} $<TARGET_FILE:${modName}_test>
+                         ${MPIEXEC_PREFLAGS} $<TARGET_FILE:${modName}_test>
                          ${MPIEXEC_POSTFLAGS} mpi ${dataDir})
+        set_tests_properties(${modName}.mpi-${np} PROPERTIES ENVIRONMENT
+                "${mpiOversubscribe}")
     endforeach ()
 endif ()
 

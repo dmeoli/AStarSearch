@@ -12,7 +12,8 @@
  * Usage:   15Puzzle [-n] [-t <threads>] [<16 tiles>]
  *
  * where the 16 tiles are given row by row, 0 for the blank; the default
- * start is 10 2 7 1 14 0 8 4 13 5 15 12 9 11 3 6. The search is A* with
+ * start is the instance 1 of Korf, whose optimal solution has 57 moves
+ * (data/15-puzzle/korf100.txt holds all the 100). The search is A* with
  * the Manhattan distance, which gives an optimal solution; with -n the
  * heuristic is the sequence score of Nilsson, which may give a longer one;
  * with -t it is Hash Distributed A* with Abstract Zobrist hashing on the
@@ -61,18 +62,18 @@ template< class S >
 static int report( const S & sol )
 {
  if( ! sol.solved() ) {
-  std::cout << "Search terminated. Did not find goal state!" << std::endl;
+  std::cout << "no path to the goal" << std::endl;
   return( 1 );
   }
- std::cout << "Search found goal state..." << std::endl
-           << "Displaying solution:" << std::endl;
+ int k = 0;
  for( auto s : sol.path ) {
-  std::cout << std::endl;
+  std::cout << "move " << k++ << std::endl;
   FifteenPuzzle::print( std::cout , s );
+  std::cout << std::endl;
   }
- std::cout << std::endl << "Solution steps: " << sol.cost << std::endl
-           << "Search steps: " << sol.stats.expanded << std::endl
-           << "Seconds: " << sol.stats.seconds << std::endl;
+ std::cout << "moves:     " << sol.cost << std::endl
+           << "expanded:  " << sol.stats.expanded << std::endl
+           << "seconds:   " << sol.stats.seconds << std::endl;
  return( 0 );
  }
 
@@ -94,7 +95,7 @@ int main( int argc , char * argv[] )
    else
     board += std::string( argv[ i ] ) + " ";
  if( board.empty() )
-  board = "10 2 7 1 14 0 8 4 13 5 15 12 9 11 3 6";
+  board = "14 13 15 7 11 12 9 5 6 0 2 1 4 8 10 3";
 
  try {
   const auto start = FifteenPuzzle::parse( board );

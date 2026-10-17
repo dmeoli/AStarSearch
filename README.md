@@ -46,7 +46,7 @@ satisfies all of the concepts) and pathfinding with 4 or 8 moves on a grid
 with cell costs (`Grid.h`), read from a Moving AI map or generated at
 random. Also, `ExplicitGraph.h` holds a weighted graph given by its arcs,
 which serves for the route-finding problem on the map of Romania of Russell
-and Norvig.
+and Norvig [13].
 
 ## The algorithms
 
@@ -181,12 +181,24 @@ int main( void )
 
 ## The examples and the benchmark
 
-In `examples`, four programs solve the 8-puzzle (`8Puzzle`), the 15-puzzle
-(`15Puzzle`, with `-t <threads>` for HDA*), a path on a weighted grid
-(`FindPath`) and the route to Bucharest from a city of the map of Romania
-(`MinPathToBucharest`). With `-n`, the two puzzles use the sequence score of
-Nilsson [8] instead of the Manhattan distance; since this heuristic is not
-admissible, the path found is not, in general, an optimal one. In `tools`,
+The programs in `examples` are, for the most part, the search problems of
+chapter 3 of Russell and Norvig [13], each one with its own `Domain` written
+in the file. `8Puzzle` solves the instance of figure 3.28 of the book, or an
+instance at a given distance from the goal, with the number of misplaced
+tiles (h1), the Manhattan distance (h2) or the sequence score of Nilsson [8],
+which is not admissible; with `-t` it repeats the comparison of h1 and h2 of
+figure 3.29 (nodes generated and effective branching factor). `15Puzzle`
+solves an instance of Korf, sequentially or with HDA* (`-t <threads>`);
+`RouteFinding` finds a road between two cities of the map of Romania of the
+book; `FindPath` finds a path on a weighted grid, random or read from a
+Moving AI map, and draws it. The last three come from the exercises of the
+book: `NQueens` places n queens with the incremental formulation of section
+3.2.1, `WaterJugs` measures a quantity of water with jugs (exercise 3.6(d)),
+and `TravelingSalesman` solves the traveling salesperson problem with the
+minimum spanning tree heuristic (exercise 3.30), checking the tour against
+the dynamic program of Held and Karp. Each run with a known answer (e.g.,
+the 26 moves of figure 3.28 and the 418 km from Arad to Bucharest) is also
+a test of `ctest`, labelled `example`. In `tools`,
 `AStarBench` runs any search, runtime and distribution of the library on
 the 100 instances of Korf (`data/15-puzzle/korf100.txt`), on the 8-puzzle
 and on the grids, and it prints a line of CSV per run with the cost, the
@@ -237,3 +249,5 @@ University of Pisa.
 12. M. Aldinucci, M. Danelutto, P. Kilpatrick and M. Torquati, *FastFlow:
     high-level and efficient streaming on multi-core*, in Programming
     Multi-core and Many-core Computing Systems, Wiley, 2017.
+13. S. Russell and P. Norvig, *Artificial Intelligence: A Modern Approach*,
+    3rd edition, Prentice Hall, 2010.

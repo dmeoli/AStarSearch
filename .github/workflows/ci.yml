@@ -48,8 +48,9 @@ jobs:
       # the installed package is found by find_package()
       - name: Install
         run: |
-          cmake --install build --prefix ${{ runner.temp }}/astar
-          test -f ${{ runner.temp }}/astar/lib/cmake/AStarSearch/AStarSearchConfig.cmake
+          p=${{ runner.temp }}/astar
+          cmake --install build --prefix $p
+          test -f $p/lib/cmake/AStarSearch/AStarSearchConfig.cmake
 
   makefiles:
     name: Linux makefiles
@@ -103,10 +104,12 @@ jobs:
         run: cmake --build build -j 4 --target AStarSearch_test
       - name: Test
         env:
-          # the lock-free queues of FastFlow are suppressed [see the file]
+          # the lock-free queues of FastFlow and a leak of its blocking mode
+          # are suppressed [see the files]
           TSAN_OPTIONS: >-
             halt_on_error=1 second_deadlock_stack=1
             suppressions=${{ github.workspace }}/test/tsan.supp
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/test/lsan.supp
           UBSAN_OPTIONS: halt_on_error=1 print_stacktrace=1
         run: >
           ctest --test-dir build -L AStarSearch --output-on-failure
