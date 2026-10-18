@@ -63,6 +63,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- the licence is the GNU Lesser General Public License version 3.0,
+  instead of the MIT License
+
 - the library is compiled (src/ holds what does not depend on the Domain)
   and written in C++20, instead of the single header of C++11 with linear
   searches in the OPEN and closed lists

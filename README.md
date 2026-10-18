@@ -6,7 +6,7 @@
 [![Documentation](https://img.shields.io/badge/docs-online-blue)](https://dmeoli.github.io/AStarSearch/)
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-20-blue)](https://en.cppreference.com/w/cpp/20)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://github.com/dmeoli/AStarSearch/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 
 AStarSearch is a C++20 library for the sequential and parallel A*
 search [[9]](#ref-9) of an implicit state-space graph, i.e., a graph given by an
@@ -297,7 +297,8 @@ If AStarSearch is useful in a publication, one can cite it as
 
 ## License
 
-This software is released under the MIT License (see the file
+This software is released under the [GNU Lesser General Public License
+version 3.0](https://opensource.org/licenses/lgpl-3.0.html) (see the file
 [LICENSE](LICENSE)). Its sequential version was first written for the
 course of Knowledge Engineering of prof.
 [Floriana Esposito](https://www.uniba.it/it/docenti/esposito-floriana) at
