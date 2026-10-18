@@ -55,11 +55,11 @@ namespace AStar_di_unipi_it
  * them, batch at a time, to the workers that are free; a worker evaluates
  * and branches each node, offering its feasible value to the shared
  * incumbent, and sends back the children that survive the pruning (with
- * plunging, it goes on with the child that dives in the same task). The
- * search ends when the queue is empty, or no node of it can improve the
- * incumbent, and no task is out at a worker. Since the master only moves
- * nodes, the order of extraction is the one of the selection, and the
- * scheme suits an evaluation that is expensive w.r.t. the transfer of a
+ * depth-first or plunging, it goes on with the child that dives in the same
+ * task). The search ends when the queue is empty, or no node of it can
+ * improve the incumbent, and no task is out at a worker. Since the master
+ * only moves nodes, the order of extraction is the one of the selection, and
+ * the scheme suits an evaluation that is expensive w.r.t. the transfer of a
  * node.
  *
  * The farm runs threads + 1 threads: with ASTAR_PIN the master takes the

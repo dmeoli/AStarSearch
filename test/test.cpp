@@ -773,17 +773,20 @@ struct Knapsack {
  void branch( const node_type & n , F && f ) const {
   if( n.k == p.size() )
    return;
+  // the item k left out first and taken last, so that with ties a depth
+  // first search goes on with the item taken, as the greedy order does
   constexpr double none = std::numeric_limits< double >::infinity();
-  node_type c = n;                         // the item k left out
+  node_type c = n;
   ++c.k;
-  if( n.weight + w[ n.k ] <= cap ) {       // the item k taken
-   node_type t = c;
+  const bool fits = n.weight + w[ n.k ] <= cap;
+  node_type t = c;
+  f( std::move( c ) , none );
+  if( fits ) {
    t.weight += w[ n.k ];
    t.profit += p[ n.k ];
    t.x[ n.k ] = 1;
    f( std::move( t ) , none );
    }
-  f( std::move( c ) , none );
   }
 
  std::uint64_t hash( const node_type & n ) const {

@@ -150,13 +150,17 @@ void bb_finish( BBSolution< typename P::node_type > & sol ,
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-/// the index of the child of least bound that dives with plunging, or
-/// kids.size() if none does
+/// the index of the child that the worker goes on with, or kids.size() if
+/// none: with depth-first the last child, which the queue would extract
+/// next anyway, and with plunging the child of least bound, if it is close
+/// enough to the best bound
 
 template< class Item >
 std::size_t bb_dive( const std::vector< Item > & kids , double best ,
                      double inc , const BBOptions & o )
 {
+ if( ( o.selection == Selection::depth_first ) && ! kids.empty() )
+  return( kids.size() - 1 );
  if( ( o.selection != Selection::plunging ) || kids.empty() )
   return( kids.size() );
  std::size_t c = 0;
@@ -178,11 +182,11 @@ std::size_t bb_dive( const std::vector< Item > & kids , double best ,
 /// the parallel B&B with one queue shared by the workers
 /** The workers extract the nodes from one queue under a lock, evaluate and
  * branch them outside of it, and push the children back under it (with
- * plunging, the child that dives is kept by the worker). The search ends
- * when the queue is empty and no worker holds a node; the open nodes are
- * dropped at once when none of them can improve the incumbent. The order
- * of extraction is close to the sequential one, and the lock is cheap when
- * the evaluation dominates, which is the usual case of a B&B. */
+ * depth-first or plunging, the child that dives is kept by the worker). The
+ * search ends when the queue is empty and no worker holds a node; the open
+ * nodes are dropped at once when none of them can improve the incumbent. The
+ * order of extraction is close to the sequential one, and the lock is cheap
+ * when the evaluation dominates, which is the usual case of a B&B. */
 
 template< BranchAndBound P , class Runtime = ThreadRuntime >
 class SharedBranchAndBound {
@@ -404,10 +408,10 @@ class SharedBranchAndBound {
 /*--------------------------------------------------------------------------*/
 /// the parallel B&B with a queue per worker and the children sent to
 /// their owners
-/** Each worker extracts the nodes from its own queue, and sends each
- * child, in batches, to the worker that owns it: hash( n ) mod p if the
- * problem gives hash( n ), a random worker otherwise (with plunging, the
- * child that dives is kept). Since a tree has no duplicates, the owners
+/** Each worker extracts the nodes from its own queue, and sends each child,
+ * in batches, to the worker that owns it: hash( n ) mod p if the problem
+ * gives hash( n ), a random worker otherwise (with depth-first or plunging,
+ * the child that dives is kept). Since a tree has no duplicates, the owners
  * only balance the load. The incumbent is shared, and the termination is
  * detected as in HDAStar, by a counter of the nodes in flight, a counter of
  * the idle workers and an epoch [see HDAStar.h]. */

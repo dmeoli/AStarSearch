@@ -127,19 +127,19 @@ typename P::node_type bb_get_node( const P & p , const char * & in )
 /*------------------------ CLASS MPIBranchAndBound -------------------------*/
 /*--------------------------------------------------------------------------*/
 /// the distributed B&B with one MPI process per worker
-/** Each process extracts the nodes from its own queue, and sends each
- * child, in batches and with non-blocking sends, to the process that owns
- * it: hash( n ) mod p if the problem gives hash( n ), a random process
- * otherwise (with plunging, the child that dives is kept). A process that
+/** Each process extracts the nodes from its own queue, and sends each child,
+ * in batches and with non-blocking sends, to the process that owns it: hash(
+ * n ) mod p if the problem gives hash( n ), a random process otherwise (with
+ * depth-first or plunging, the child that dives is kept). A process that
  * improves the incumbent sends its value to all the others, and calls the
  * callback of the options; the node of the incumbent stays on it until the
  * end, when it is sent to all. The end is detected with the four-counter
  * method of Mattern, as in HDAStarMPI [see HDAStarMPI.h]: a process joins a
  * wave of MPI_Iallreduce when it has no node that can improve the incumbent
- * and no batch to send. The node limit is split evenly among the
- * processes; a process that reaches its share, or the time limit, tells the
- * others, and all of them stop evaluating and drain the messages until the
- * end is detected, the nodes left open bounding the optimum.
+ * and no batch to send. The node limit is split evenly among the processes;
+ * a process that reaches its share, or the time limit, tells the others, and
+ * all of them stop evaluating and drain the messages until the end is
+ * detected, the nodes left open bounding the optimum.
  *
  * MPI must be initialized by the caller, with at least MPI_THREAD_FUNNELED
  * if the problem uses threads; all the processes of the communicator call
