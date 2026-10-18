@@ -23,6 +23,10 @@
 /*-------------------------------- INCLUDES --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+#include <algorithm>
+
+#include <vector>
+
 #include "AStarSearch/Domain.h"
 
 #include "AStarSearch/Node.h"
@@ -55,13 +59,15 @@ namespace AStar_di_unipi_it
  * is ever reopened.
  *
  * Open defaults to BucketOpenList for integer costs and to HeapOpenList
- * otherwise [see OpenList.h]. */
+ * otherwise [see OpenList.h]. The nodes of a ReversibleDomain have no
+ * pointer to their parent [see CompactNode in Node.h], and the path is
+ * rebuilt from the goal by the predecessors of the states. */
 
 template< Domain D ,
           class Open = std::conditional_t<
            std::is_integral_v< cost_t< D > > ,
-           BucketOpenList< Node< state_t< D > , cost_t< D > > > ,
-           HeapOpenList< Node< state_t< D > , cost_t< D > > > > >
+           BucketOpenList< search_node_t< D > > ,
+           HeapOpenList< search_node_t< D > > > >
 class AStar {
 
 /*------------------------ PUBLIC PART OF THE CLASS ------------------------*/
@@ -72,7 +78,7 @@ class AStar {
 
  using State = state_t< D >;                       ///< the state type
  using Cost = cost_t< D >;                         ///< the cost type
- using NodeT = Node< State , Cost >;               ///< the node type
+ using NodeT = search_node_t< D >;                 ///< the node type
  using SolutionT = Solution< State , Cost >;       ///< the solution type
 
 /*------------------------------ CONSTRUCTOR -------------------------------*/
@@ -101,8 +107,12 @@ class AStar {
   const State s0 = f_domain.initial_state();
   NodeT * root = table.find_or_insert( s0 , f_domain.hash( s0 ) , [ & ] {
    NodeT * n = pool.allocate();
-   *n = NodeT{ s0 , Cost( 0 ) , Cost( f_domain.heuristic( s0 ) ) , nullptr ,
-               false , false };
+   if constexpr( c_compact )
+    *n = NodeT{ s0 , Cost( 0 ) , Cost( f_domain.heuristic( s0 ) ) , false ,
+                false };
+   else
+    *n = NodeT{ s0 , Cost( 0 ) , Cost( f_domain.heuristic( s0 ) ) ,
+                nullptr , false , false };
    return( n );
    } ).first;
   open.push( root );
@@ -122,7 +132,10 @@ class AStar {
    if( f_domain.is_goal( n->state ) ) {
     sol.status = Status::solved;
     sol.cost = n->g;
-    sol.path = trace_path( n );
+    if constexpr( c_compact )
+     sol.path = trace_back( n , table );
+    else
+     sol.path = trace_path( n );
     break;
     }
 
@@ -147,7 +160,10 @@ class AStar {
     const Cost g = n->g + k.c;
     auto [ m , fresh ] = table.find_or_insert( k.s , k.hash , [ & ] {
      NodeT * x = pool.allocate();
-     *x = NodeT{ k.s , g , k.h , n , false , false , k.op };
+     if constexpr( c_compact )
+      *x = NodeT{ k.s , g , k.h , false , false , k.op };
+     else
+      *x = NodeT{ k.s , g , k.h , n , false , false , k.op };
      return( x );
      } );
     if( fresh )
@@ -155,7 +171,8 @@ class AStar {
     else
      if( g < m->g ) {     // a cheaper path: reopen
       m->g = g;
-      m->parent = n;
+      if constexpr( ! c_compact )
+       m->parent = n;
       m->op = k.op;
       m->closed = false;
       open.push( m );
@@ -181,6 +198,27 @@ class AStar {
 
  private:
 
+ /// true if the nodes have no pointer to their parent
+ static constexpr bool c_compact = ReversibleDomain< D >;
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ // the path from the root to the goal n, from n backwards by the
+ // predecessors of the states, whose nodes give their operators
+
+ template< class Table >
+ [[nodiscard]] std::vector< State > trace_back( const NodeT * n ,
+                                                const Table & table ) const {
+  std::vector< State > path{ n->state };
+  while( n->op != no_op ) {
+   const State p = f_domain.predecessor( n->state , n->op );
+   path.push_back( p );
+   n = table.find( p , f_domain.hash( p ) );
+   }
+  std::reverse( path.begin() , path.end() );
+  return( path );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// a successor: its state, the cost of its edge, its h, its hash
  struct Kid {
   State s;
@@ -208,7 +246,7 @@ template< Domain D >
  const D & domain , OpenKind open = OpenKind::automatic ,
  const SearchOptions & options = {} )
 {
- using NodeT = Node< state_t< D > , cost_t< D > >;
+ using NodeT = search_node_t< D >;
  if constexpr( std::is_integral_v< cost_t< D > > )
   if( open != OpenKind::heap )
    return( AStar< D , BucketOpenList< NodeT > >( domain , options ).solve()

@@ -203,6 +203,18 @@ class SlidingTile {
    }
   }
 
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// the board that the operator op (the cell of its blank) turned into s:
+ /// the tile now in op goes back to the blank of s
+
+ [[nodiscard]] state_type predecessor( state_type s , std::uint8_t op ) const
+  noexcept {
+  const int b = blank( s );
+  const int t = tile( s , op );
+  return( ( s & ~( state_type( 0xF ) << ( 4 * op ) ) )
+          | ( state_type( t ) << ( 4 * b ) ) );
+  }
+
 /*---------------------- FEATURES FOR ZOBRIST HASHING ----------------------*/
  /// the number of features: one per pair ( tile , cell )
 

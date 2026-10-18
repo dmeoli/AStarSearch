@@ -27,6 +27,8 @@
 
 #include <memory>
 
+#include <type_traits>
+
 #include <vector>
 
 #include "AStarSearch/Domain.h"
@@ -67,6 +69,39 @@ struct Node {
  [[nodiscard]] Cost f( void ) const noexcept { return( g + h ); }
 
  };  // end( struct( Node ) )
+
+/*--------------------------------------------------------------------------*/
+/*--------------------------- CLASS CompactNode ----------------------------*/
+/*--------------------------------------------------------------------------*/
+/// a node of the search graph of a ReversibleDomain
+/** The same as Node but without the pointer to the parent, which is the
+ * predecessor of the state by its operator op [see ReversibleDomain in
+ * Domain.h]: with a state of 8 bytes and costs of 4, the node takes 24
+ * bytes instead of 32. */
+
+template< class State , class Cost >
+struct CompactNode {
+
+ State state;     ///< the state
+ Cost g;          ///< the cost of the best path found from the root
+ Cost h;          ///< the heuristic estimate of the cost to a goal
+ bool closed;     ///< true if expanded with the current g
+ bool expanded;   ///< true if ever expanded
+ std::uint8_t op = no_op;  ///< the operator that generated the state
+
+ /// the estimate f = g + h of the cost of a solution through the node
+ [[nodiscard]] Cost f( void ) const noexcept { return( g + h ); }
+
+ };  // end( struct( CompactNode ) )
+
+/*--------------------------------------------------------------------------*/
+/// the node of the sequential search of a Domain: CompactNode for a
+/// ReversibleDomain, Node otherwise
+
+template< class D >
+using search_node_t = std::conditional_t<
+ ReversibleDomain< D > , CompactNode< state_t< D > , cost_t< D > > ,
+                         Node< state_t< D > , cost_t< D > > >;
 
 /*--------------------------------------------------------------------------*/
 /*----------------------------- CLASS NodePool -----------------------------*/

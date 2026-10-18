@@ -220,6 +220,21 @@ concept OperatorDomain = Domain< D > &&
   };
 
 /*--------------------------------------------------------------------------*/
+/// an OperatorDomain that can undo an operator
+/** predecessor( s , op ) is the state that the operator op generated s
+ * from, i.e., the parent of s on the path the search found; with it, A*
+ * keeps no pointer to the parent in a node, and rebuilds the path from the
+ * goal backwards [see CompactNode in Node.h]. */
+
+template< class D >
+concept ReversibleDomain = OperatorDomain< D > &&
+ requires( const D & d , const typename D::state_type & s ,
+           std::uint8_t op ) {
+  { d.predecessor( s , op ) }
+   -> std::convertible_to< typename D::state_type >;
+  };
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 /// a Domain with a perfect hash of its states
 /** perfect_hash( s ) is an injective map of the states to integers, used
  * by the HDA*[P] work distribution of Burns et al. (JAIR 2010). */
