@@ -22,8 +22,8 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'docs', 'generated')
-BLOB = 'https://github.com/dmeoli/AStarSearch/blob/main/'
-TREE = 'https://github.com/dmeoli/AStarSearch/tree/main/'
+BLOB = 'https://github.com/dmeoli/PBeFS/blob/main/'
+TREE = 'https://github.com/dmeoli/PBeFS/tree/main/'
 
 # the sections of the README and the page each one goes to; the sections
 # not listed here go to the home page

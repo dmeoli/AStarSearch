@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------- #
-#    Releases of AStarSearch                                                  #
+#    Releases of PBeFS                                                        #
 #                                                                             #
 #    At each tag vX.Y.Z, publishes the GitHub release of that version with    #
 #    its section of the CHANGELOG as the notes.                               #
@@ -34,5 +34,5 @@ jobs:
             on && /^\[[^]]+\]: / { exit }
             on { print }' CHANGELOG.md > notes.md
           test -s notes.md
-          gh release create "$GITHUB_REF_NAME" --title "AStarSearch $v" \
+          gh release create "$GITHUB_REF_NAME" --title "PBeFS $v" \
              --notes-file notes.md

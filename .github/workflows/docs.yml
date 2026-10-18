@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------- #
-#    Documentation of AStarSearch                                             #
+#    Documentation of PBeFS                                                   #
 #                                                                             #
 #    Builds the documentation and publishes it on the pages of the            #
 #    repository at each push to main: the site of Sphinx with the theme of    #

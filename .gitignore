@@ -20,9 +20,9 @@ examples/WaterJugs
 examples/MissionariesCannibals
 examples/VacuumWorld
 examples/TravelingSalesman
-test/AStarSearch_test
-test/AStarSearch_test_mpi
-test/AStarSearchConfig.h
+test/PBeFS_test
+test/PBeFS_test_mpi
+test/PBeFSConfig.h
 tools/AStarBench
 tools/AStarBenchMPI
 *.o

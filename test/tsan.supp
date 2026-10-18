@@ -1,4 +1,4 @@
-# ThreadSanitizer suppressions for the tests of AStarSearch.
+# ThreadSanitizer suppressions for the tests of PBeFS.
 #
 # The single-producer single-consumer queues of FastFlow are lock-free by
 # design: they read and write the slots and the indices without atomic

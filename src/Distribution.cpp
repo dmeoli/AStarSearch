@@ -19,19 +19,19 @@
 
 #include <random>
 
-#include "AStarSearch/Distribution.h"
+#include "PBeFS/astar/Distribution.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
 /*--------------------------------------------------------------------------*/
 
-using namespace AStar_di_unipi_it;
+using namespace PBeFS_di_unipi_it;
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- FUNCTIONS --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-std::vector< std::uint64_t > AStar_di_unipi_it::random_table(
+std::vector< std::uint64_t > PBeFS_di_unipi_it::random_table(
  std::size_t n , std::uint64_t seed )
 {
  std::mt19937_64 gen( seed );

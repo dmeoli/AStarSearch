@@ -2,7 +2,7 @@
 ################################ makefile ####################################
 ##############################################################################
 #                                                                            #
-#   makefile of test (for AStarSearch)                                       #
+#   makefile of test (for PBeFS)                                             #
 #                                                                            #
 #   make builds the tester with the threads, OpenMP and FastFlow, make mpi   #
 #   the one with MPI too (compiled with mpicxx), make check runs all the     #
@@ -15,7 +15,7 @@
 ##############################################################################
 
 # module name
-NAME = AStarSearch_test
+NAME = PBeFS_test
 
 # basic directory
 DIR = .
@@ -87,38 +87,38 @@ clean::
 # *H   is the list of all include files
 # *INC is the -I< include directories >
 
-# AStarSearch
-AStSDR = ..
-include $(AStSDR)/makefile-c
+# PBeFS
+PBeFSSDR = ..
+include $(PBeFSSDR)/makefile-c
 
 # main module (linking phase) - - - - - - - - - - - - - - - - - - - - - - - -
 
 # object files
-MOBJ = $(AStOBJ)
+MOBJ = $(PBeFSOBJ)
 
 # libraries
-MLIB = $(AStLIB)
+MLIB = $(PBeFSLIB)
 
-$(DIR)/$(NAME): $(DIR)/test.cpp $(AStH) $(MOBJ)
-	$(CC) -o $@ $(DIR)/test.cpp $(MOBJ) $(AStINC) -I$(DIR) $(AStDEF) \
+$(DIR)/$(NAME): $(DIR)/test.cpp $(PBeFSH) $(MOBJ)
+	$(CC) -o $@ $(DIR)/test.cpp $(MOBJ) $(PBeFSINC) -I$(DIR) $(PBeFSDEF) \
 	$(MLIB) $(SW)
 
-$(DIR)/$(NAME)_mpi: $(DIR)/test.cpp $(AStH) $(AStMPIH) $(MOBJ)
-	$(MPICC) -o $@ $(DIR)/test.cpp $(MOBJ) $(AStINC) -I$(DIR) $(AStDEF) \
-	-DASTAR_HAS_MPI $(MLIB) $(SW)
+$(DIR)/$(NAME)_mpi: $(DIR)/test.cpp $(PBeFSH) $(PBeFSMPIH) $(MOBJ)
+	$(MPICC) -o $@ $(DIR)/test.cpp $(MOBJ) $(PBeFSINC) -I$(DIR) $(PBeFSDEF) \
+	-DPBEFS_HAS_MPI $(MLIB) $(SW)
 
 # the configuration header that CMake writes in the build directory
-$(DIR)/AStarSearchConfig.h:
-	printf '#define AStarSearch_VERSION "%s"\n' \
-	"$$(git -C $(AStSDR) describe --tags --abbrev=0 2>/dev/null || echo 0.0.0)" \
+$(DIR)/PBeFSConfig.h:
+	printf '#define PBeFS_VERSION "%s"\n' \
+	"$$(git -C $(PBeFSSDR) describe --tags --abbrev=0 2>/dev/null || echo 0.0.0)" \
 	> $@
 
-$(DIR)/$(NAME) $(DIR)/$(NAME)_mpi: $(DIR)/AStarSearchConfig.h
+$(DIR)/$(NAME) $(DIR)/$(NAME)_mpi: $(DIR)/PBeFSConfig.h
 
 # distclean target- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 distclean: clean
-	rm -f $(DIR)/AStarSearchConfig.h
+	rm -f $(DIR)/PBeFSConfig.h
 
 # phony targets - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

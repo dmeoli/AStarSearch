@@ -25,11 +25,11 @@
 #                                                                             #
 # Call it BEFORE project():                                                   #
 #     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeriveVersion.cmake)          #
-#     astar_derive_version(MOD_VERSION)                                       #
+#     pbefs_derive_version(MOD_VERSION)                                       #
 #     project(<Module> VERSION ${MOD_VERSION} ...)                            #
 # --------------------------------------------------------------------------- #
 
-function(astar_derive_version out_var)
+function(pbefs_derive_version out_var)
     set(_raw "")
 
     # 1) working git clone

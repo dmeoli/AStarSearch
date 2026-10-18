@@ -35,15 +35,15 @@
 
 #include <string>
 
-#include "AStarSearch/AStar.h"
+#include "PBeFS/astar/AStar.h"
 
-#include "AStarSearch/ExplicitGraph.h"
+#include "PBeFS/astar/ExplicitGraph.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
 /*--------------------------------------------------------------------------*/
 
-using namespace AStar_di_unipi_it;
+using namespace PBeFS_di_unipi_it;
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------------- THE MAP ---------------------------------*/

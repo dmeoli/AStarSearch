@@ -1,11 +1,11 @@
 # --------------------------------------------------------------------------- #
-#    Main CMake file for AStarSearch                                          #
+#    Main CMake file for PBeFS                                                #
 #                                                                             #
-#    This file builds the library of AStarSearch (the searches, templates     #
+#    This file builds the library of PBeFS (the searches, templates           #
 #    over the Domain, are in its headers), its interface targets for the      #
 #    parallel runtimes, the examples, the benchmark tools and the tests, and  #
 #    installs them with a package configuration file, so that other CMake     #
-#    projects can use the library with find_package(AStarSearch).             #
+#    projects can use the library with find_package(PBeFS).                   #
 #                                                                             #
 #        $ cmake -S <source-path> -B <build-path>                             #
 #        $ cmake --build <build-path>                                         #
@@ -15,7 +15,7 @@
 #    The parallel runtimes are optional: OpenMP and MPI are used if found,    #
 #    FastFlow if its headers are in FASTFLOW_ROOT (/opt/fastflow by default)  #
 #    or on the include path, else it is downloaded at a fixed commit; each    #
-#    can be turned off with the ASTAR_WITH_* options.                         #
+#    can be turned off with the PBEFS_WITH_* options.                         #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
@@ -24,12 +24,12 @@
 cmake_minimum_required(VERSION 3.21)
 cmake_policy(VERSION 3.15)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeriveVersion.cmake)
-astar_derive_version(ASTAR_VERSION)
+pbefs_derive_version(PBEFS_VERSION)
 
-project(AStarSearch
-        VERSION ${ASTAR_VERSION}
-        DESCRIPTION "Sequential and parallel A* search"
-        HOMEPAGE_URL https://github.com/dmeoli/AStarSearch
+project(PBeFS
+        VERSION ${PBEFS_VERSION}
+        DESCRIPTION "Parallel best-first search: A* and branch-and-bound"
+        HOMEPAGE_URL https://github.com/dmeoli/PBeFS
         LANGUAGES CXX)
 
 # These variables make the code harder to read but easier to change.
@@ -44,17 +44,17 @@ get_directory_property(hasParent PARENT_DIRECTORY)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # ----- Settings ------------------------------------------------------------ #
-# The tests, the examples and the tools are built only when AStarSearch is
+# The tests, the examples and the tools are built only when PBeFS is
 # the top-level project, not when another project adds it with
 # add_subdirectory() or FetchContent.
-option(ASTAR_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
-option(ASTAR_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
-option(ASTAR_BUILD_TOOLS "Build the benchmark tools" ${PROJECT_IS_TOP_LEVEL})
+option(PBEFS_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
+option(PBEFS_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
+option(PBEFS_BUILD_TOOLS "Build the benchmark tools" ${PROJECT_IS_TOP_LEVEL})
 
 # This creates the BUILD_TESTING option (default: ON) and enables the
 # testing using the ctest executable.
 # See: https://cmake.org/cmake/help/latest/manual/ctest.1.html
-if (ASTAR_BUILD_TESTS)
+if (PBEFS_BUILD_TESTS)
     include(CTest)
 endif ()
 
@@ -65,55 +65,55 @@ include(BuildType)
 # The standard installation directories, used by the subdirectories too.
 include(GNUInstallDirs)
 
-option(ASTAR_WITH_OPENMP "Build the OpenMP runtime if OpenMP is found" ON)
-option(ASTAR_WITH_MPI "Build the MPI search if MPI is found" ON)
-option(ASTAR_WITH_FASTFLOW "Build the FastFlow runtime if found" ON)
+option(PBEFS_WITH_OPENMP "Build the OpenMP runtime if OpenMP is found" ON)
+option(PBEFS_WITH_MPI "Build the MPI search if MPI is found" ON)
+option(PBEFS_WITH_FASTFLOW "Build the FastFlow runtime if found" ON)
 
-option(ASTAR_FETCH_FASTFLOW "Download FastFlow if it is not installed" ON)
+option(PBEFS_FETCH_FASTFLOW "Download FastFlow if it is not installed" ON)
 
 set(FASTFLOW_ROOT /opt/fastflow CACHE PATH
     "Directory holding the ff/ headers of FastFlow")
 # the commit of FastFlow downloaded when it is not installed, the one the
 # CI tests
-set(ASTAR_FASTFLOW_COMMIT d476f66ab924d8d122f54b4b90aee00ef979aea8
+set(PBEFS_FASTFLOW_COMMIT d476f66ab924d8d122f54b4b90aee00ef979aea8
     CACHE STRING "The commit of FastFlow to download")
 
 # ----- Requirements -------------------------------------------------------- #
 find_package(Threads REQUIRED)
 
-if (ASTAR_WITH_OPENMP)
+if (PBEFS_WITH_OPENMP)
     find_package(OpenMP COMPONENTS CXX)
 endif ()
 
-if (ASTAR_WITH_MPI)
+if (PBEFS_WITH_MPI)
     find_package(MPI COMPONENTS CXX)
 endif ()
 
 # FastFlow is header-only: its headers are looked for in FASTFLOW_ROOT and
 # on the include path, and if they are not there the sources of the commit
-# ASTAR_FASTFLOW_COMMIT are downloaded (its CMakeLists.txt is not used).
-set(ASTAR_HAS_FASTFLOW OFF)
-if (ASTAR_WITH_FASTFLOW)
+# PBEFS_FASTFLOW_COMMIT are downloaded (its CMakeLists.txt is not used).
+set(PBEFS_HAS_FASTFLOW OFF)
+if (PBEFS_WITH_FASTFLOW)
     find_path(FASTFLOW_INCLUDE_DIR ff/ff.hpp
               HINTS ${FASTFLOW_ROOT} PATH_SUFFIXES include)
-    if (NOT FASTFLOW_INCLUDE_DIR AND ASTAR_FETCH_FASTFLOW)
+    if (NOT FASTFLOW_INCLUDE_DIR AND PBEFS_FETCH_FASTFLOW)
         include(FetchContent)
         FetchContent_Declare(
                 fastflow
                 GIT_REPOSITORY https://github.com/fastflow/fastflow.git
-                GIT_TAG ${ASTAR_FASTFLOW_COMMIT}
+                GIT_TAG ${PBEFS_FASTFLOW_COMMIT}
                 SOURCE_SUBDIR none)
         FetchContent_MakeAvailable(fastflow)
         set(FASTFLOW_INCLUDE_DIR ${fastflow_SOURCE_DIR} CACHE PATH
             "Directory holding the ff/ headers of FastFlow" FORCE)
     endif ()
     if (FASTFLOW_INCLUDE_DIR AND EXISTS ${FASTFLOW_INCLUDE_DIR}/ff/ff.hpp)
-        set(ASTAR_HAS_FASTFLOW ON)
+        set(PBEFS_HAS_FASTFLOW ON)
     endif ()
 endif ()
 
 # ----- Configuration header ------------------------------------------------ #
-# This will generate the AStarSearchConfig.h header in the build directory.
+# This will generate the PBeFSConfig.h header in the build directory.
 string(MAKE_C_IDENTIFIER "${modName}" modMacro)
 configure_file(cmake/${modName}Config.h.in ${modName}Config.h)
 
@@ -174,7 +174,7 @@ endif ()
 
 # The headers of FastFlow are included as system headers, so that their
 # warnings do not drown ours; installed, they go next to ours.
-if (ASTAR_HAS_FASTFLOW)
+if (PBEFS_HAS_FASTFLOW)
     add_library(${modName}_FastFlow INTERFACE)
     target_include_directories(
             ${modName}_FastFlow SYSTEM INTERFACE
@@ -192,18 +192,18 @@ if (ASTAR_HAS_FASTFLOW)
 endif ()
 
 message(STATUS "${modName} ${PROJECT_VERSION}: OpenMP ${OpenMP_CXX_FOUND}, "
-        "MPI ${MPI_CXX_FOUND}, FastFlow ${ASTAR_HAS_FASTFLOW}")
+        "MPI ${MPI_CXX_FOUND}, FastFlow ${PBEFS_HAS_FASTFLOW}")
 
 # ----- Subdirectories ------------------------------------------------------ #
-if (ASTAR_BUILD_EXAMPLES)
+if (PBEFS_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif ()
 
-if (ASTAR_BUILD_TOOLS)
+if (PBEFS_BUILD_TOOLS)
     add_subdirectory(tools)
 endif ()
 
-if (ASTAR_BUILD_TESTS AND BUILD_TESTING)
+if (PBEFS_BUILD_TESTS AND BUILD_TESTING)
     add_subdirectory(test)
 endif ()
 
@@ -217,7 +217,7 @@ install(DIRECTORY include/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${PROJECT_BINARY_DIR}/${modName}Config.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${modNamespace})
-if (ASTAR_HAS_FASTFLOW)
+if (PBEFS_HAS_FASTFLOW)
     install(DIRECTORY ${FASTFLOW_INCLUDE_DIR}/ff
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${modNamespace}/fastflow)
 endif ()

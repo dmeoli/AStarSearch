@@ -2,7 +2,7 @@
 ################################ makefile ####################################
 ##############################################################################
 #                                                                            #
-#   makefile of the tools of AStarSearch: AStarBench, with the threads,      #
+#   makefile of the tools of PBeFS: AStarBench, with the threads,            #
 #   OpenMP and FastFlow, and AStarBenchMPI, the same source compiled with    #
 #   mpicxx for HDAStarMPI                                                    #
 #                                                                            #
@@ -53,17 +53,17 @@ clean::
 
 # define & include the necessary modules- - - - - - - - - - - - - - - - - - -
 
-# AStarSearch
-AStSDR = ..
-include $(AStSDR)/makefile-c
+# PBeFS
+PBeFSSDR = ..
+include $(PBeFSSDR)/makefile-c
 
 # the programs- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-$(DIR)/AStarBench: $(DIR)/AStarBench.cpp $(AStH) $(AStOBJ)
-	$(CC) -o $@ $< $(AStOBJ) $(AStINC) $(AStDEF) $(AStLIB) $(SW)
+$(DIR)/AStarBench: $(DIR)/AStarBench.cpp $(PBeFSH) $(PBeFSOBJ)
+	$(CC) -o $@ $< $(PBeFSOBJ) $(PBeFSINC) $(PBeFSDEF) $(PBeFSLIB) $(SW)
 
-$(DIR)/AStarBenchMPI: $(DIR)/AStarBench.cpp $(AStH) $(AStMPIH) $(AStOBJ)
-	$(MPICC) -o $@ $< $(AStOBJ) $(AStINC) -DASTAR_BENCH_MPI -pthread $(SW)
+$(DIR)/AStarBenchMPI: $(DIR)/AStarBench.cpp $(PBeFSH) $(PBeFSMPIH) $(PBeFSOBJ)
+	$(MPICC) -o $@ $< $(PBeFSOBJ) $(PBeFSINC) -DPBEFS_BENCH_MPI -pthread $(SW)
 
 # distclean target- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

@@ -2,12 +2,12 @@
 /*-------------------------- File AStarBench.cpp ---------------------------*/
 /*--------------------------------------------------------------------------*/
 /** @file
- * Benchmark of the searches of AStarSearch: solves instances of the
+ * Benchmark of the searches of PBeFS: solves instances of the
  * 15-puzzle, of the 8-puzzle or of grid pathfinding with a chosen search,
  * runtime, work distribution and number of workers, and prints one line of
  * comma-separated values per run.
  *
- * Compiled with ASTAR_BENCH_MPI defined, it is the benchmark of HDAStarMPI,
+ * Compiled with PBEFS_BENCH_MPI defined, it is the benchmark of HDAStarMPI,
  * to be started under mpiexec; only the process of rank 0 prints.
  *
  *     AStarBench [options]
@@ -60,29 +60,29 @@
 
 #include <vector>
 
-#include "AStarSearch/AStar.h"
+#include "PBeFS/astar/AStar.h"
 
-#include "AStarSearch/Distribution.h"
+#include "PBeFS/astar/Distribution.h"
 
-#include "AStarSearch/Grid.h"
+#include "PBeFS/astar/Grid.h"
 
-#include "AStarSearch/SlidingTile.h"
+#include "PBeFS/astar/SlidingTile.h"
 
-#include "AStarSearch/SlowDomain.h"
+#include "PBeFS/astar/SlowDomain.h"
 
-#ifdef ASTAR_BENCH_MPI
- #include "AStarSearch/HDAStarMPI.h"
+#ifdef PBEFS_BENCH_MPI
+ #include "PBeFS/astar/HDAStarMPI.h"
 #else
- #include "AStarSearch/HDAStar.h"
- #include "AStarSearch/SPAStar.h"
- #include "AStarSearch/PASE.h"
- #include "AStarSearch/SafePBNF.h"
- #ifdef ASTAR_HAS_OPENMP
-  #include "AStarSearch/OpenMPRuntime.h"
+ #include "PBeFS/astar/HDAStar.h"
+ #include "PBeFS/astar/SPAStar.h"
+ #include "PBeFS/astar/PASE.h"
+ #include "PBeFS/astar/SafePBNF.h"
+ #ifdef PBEFS_HAS_OPENMP
+  #include "PBeFS/core/OpenMPRuntime.h"
  #endif
- #ifdef ASTAR_HAS_FASTFLOW
-  #include "AStarSearch/FarmAStar.h"
-  #include "AStarSearch/FastFlowRuntime.h"
+ #ifdef PBEFS_HAS_FASTFLOW
+  #include "PBeFS/astar/FarmAStar.h"
+  #include "PBeFS/core/FastFlowRuntime.h"
  #endif
 #endif
 
@@ -90,7 +90,7 @@
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
 /*--------------------------------------------------------------------------*/
 
-using namespace AStar_di_unipi_it;
+using namespace PBeFS_di_unipi_it;
 
 /*--------------------------------------------------------------------------*/
 /*----------------------- TYPES AND GLOBAL VARIABLES -----------------------*/
@@ -176,17 +176,17 @@ template< class D , class Dist >
 static auto run_hda( const D & d , const Dist & dist ,
                      const ParallelOptions & o )
 {
- #ifdef ASTAR_BENCH_MPI
+ #ifdef PBEFS_BENCH_MPI
   return( HDAStarMPI< D , Dist >( d , dist , o ).solve() );
  #else
   const std::string & r = opt[ "runtime" ];
   if( r == "thread" )
    return( HDAStar< D , Dist , ThreadRuntime >( d , dist , o ).solve() );
-  #ifdef ASTAR_HAS_OPENMP
+  #ifdef PBEFS_HAS_OPENMP
   if( r == "openmp" )
    return( HDAStar< D , Dist , OpenMPRuntime >( d , dist , o ).solve() );
   #endif
-  #ifdef ASTAR_HAS_FASTFLOW
+  #ifdef PBEFS_HAS_FASTFLOW
   if( r == "fastflow" )
    return( HDAStar< D , Dist , FastFlowRuntime >( d , dist , o ).solve() );
   #endif
@@ -203,7 +203,7 @@ static Solution< state_t< D > , cost_t< D > > solve( const D & d )
  const std::string & algo = opt[ "algo" ];
  const ParallelOptions o = parallel_options();
 
- #ifndef ASTAR_BENCH_MPI
+ #ifndef PBEFS_BENCH_MPI
  if( algo == "astar" )
   return( astar( d , opt[ "open" ] == "heap" ? OpenKind::heap
                                              : OpenKind::buckets , o ) );
@@ -211,7 +211,7 @@ static Solution< state_t< D > , cost_t< D > > solve( const D & d )
   const std::string & r = opt[ "runtime" ];
   if( r == "thread" )
    return( SPAStar< D , ThreadRuntime >( d , o ).solve() );
-  #ifdef ASTAR_HAS_OPENMP
+  #ifdef PBEFS_HAS_OPENMP
   if( r == "openmp" )
    return( SPAStar< D , OpenMPRuntime >( d , o ).solve() );
   #endif
@@ -225,7 +225,7 @@ static Solution< state_t< D > , cost_t< D > > solve( const D & d )
    const std::string & r = opt[ "runtime" ];
    if( r == "thread" )
     return( SafePBNF< D , ThreadRuntime >( d , po ).solve() );
-   #ifdef ASTAR_HAS_OPENMP
+   #ifdef PBEFS_HAS_OPENMP
    if( r == "openmp" )
     return( SafePBNF< D , OpenMPRuntime >( d , po ).solve() );
    #endif
@@ -233,7 +233,7 @@ static Solution< state_t< D > , cost_t< D > > solve( const D & d )
    }
   throw( std::invalid_argument( "no nblocks for this domain" ) );
   }
- #ifdef ASTAR_HAS_FASTFLOW
+ #ifdef PBEFS_HAS_FASTFLOW
  if( algo == "farm" )
   return( FarmAStar< D >( d , o ).solve() );
  #endif
@@ -245,7 +245,7 @@ static Solution< state_t< D > , cost_t< D > > solve( const D & d )
    const std::string & r = opt[ "runtime" ];
    if( r == "thread" )
     return( PASE< D , ThreadRuntime >( d , po ).solve() );
-   #ifdef ASTAR_HAS_OPENMP
+   #ifdef PBEFS_HAS_OPENMP
    if( r == "openmp" )
     return( PASE< D , OpenMPRuntime >( d , po ).solve() );
    #endif
@@ -269,7 +269,7 @@ static Solution< state_t< D > , cost_t< D > > solve( const D & d )
  if constexpr( PerfectHashDomain< D > )
   if( dist == "P" )
    return( run_hda( d , PerfectHashDistribution< D >( d ) , o ) );
- #ifndef ASTAR_BENCH_MPI
+ #ifndef PBEFS_BENCH_MPI
  if( dist == "R" )
   return( run_hda( d , RandomDistribution< D >( d ) , o ) );
  #endif
@@ -356,7 +356,7 @@ static void run_grid( void )
 
 int main( int argc , char * argv[] )
 {
- #ifdef ASTAR_BENCH_MPI
+ #ifdef PBEFS_BENCH_MPI
   MPI_Init( & argc , & argv );
   MPI_Comm_rank( MPI_COMM_WORLD , & rank );
   opt[ "algo" ] = "hda";
@@ -377,7 +377,7 @@ int main( int argc , char * argv[] )
     throw( std::invalid_argument( "bad option " + a ) );
    opt[ a.substr( 2 ) ] = argv[ ++i ];
    }
-  #ifdef ASTAR_BENCH_MPI
+  #ifdef PBEFS_BENCH_MPI
    int np;
    MPI_Comm_size( MPI_COMM_WORLD , & np );
    opt[ "threads" ] = std::to_string( np );
@@ -407,7 +407,7 @@ int main( int argc , char * argv[] )
   ret = 2;
   }
 
- #ifdef ASTAR_BENCH_MPI
+ #ifdef PBEFS_BENCH_MPI
   MPI_Finalize();
  #endif
  return( ret );

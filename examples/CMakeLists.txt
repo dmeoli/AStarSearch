@@ -1,9 +1,9 @@
 # --------------------------------------------------------------------------- #
-#    CMake file for AStarSearch/examples                                      #
+#    CMake file for PBeFS/examples                                            #
 #                                                                             #
 #    The small programs of the library, most of them from the textbook of     #
 #    Russell and Norvig, and their runs with a known answer as tests of       #
-#    correctness, labelled AStarSearch.example.                               #
+#    correctness, labelled PBeFS.example.                                     #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
@@ -21,7 +21,7 @@ endforeach ()
 # literature) gives, e.g., the 26 moves of figure 3.28 of Russell and Norvig
 # or the 418 km from Arad to Bucharest; TravelingSalesman checks itself
 # against the dynamic program of Held and Karp.
-if (ASTAR_BUILD_TESTS AND BUILD_TESTING)
+if (PBEFS_BUILD_TESTS AND BUILD_TESTING)
     function(example_test name regex)
         add_test(NAME ${modName}.example.${name} COMMAND ${ARGN})
         set_tests_properties(${modName}.example.${name} PROPERTIES

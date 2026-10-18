@@ -2,18 +2,18 @@
 ################################ makefile ####################################
 ##############################################################################
 #                                                                            #
-#   makefile of AStarSearch                                                  #
+#   makefile of PBeFS                                                        #
 #                                                                            #
-#   The searches of AStarSearch are templates over the Domain, and they are  #
+#   The searches of PBeFS are templates over the Domain, and they are        #
 #   in the headers; the objects hold the parts that do not depend on it.     #
 #                                                                            #
 #   Input:  $(CC)      = compiler command                                    #
 #           $(SW)      = compiler options                                    #
-#           $(AStSDR)  = the directory where AStarSearch is                  #
+#           $(PBeFSSDR)  = the directory where PBeFS is                      #
 #                                                                            #
-#   Output: $(AStOBJ)  = the final object(s) / library                       #
-#           $(AStH)    = the .h files to include                             #
-#           $(AStINC)  = the -I$( include directory )                        #
+#   Output: $(PBeFSOBJ)  = the final object(s) / library                     #
+#           $(PBeFSH)    = the .h files to include                           #
+#           $(PBeFSINC)  = the -I$( include directory )                      #
 #                                                                            #
 #                                Donato Meoli                                #
 #                         Dipartimento di Informatica                        #
@@ -23,62 +23,66 @@
 
 # macros to be exported - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-AStOBJ = $(AStSDR)/obj/Distribution.o \
-         $(AStSDR)/obj/Grid.o \
-         $(AStSDR)/obj/SearchUtils.o \
-         $(AStSDR)/obj/Solution.o
+PBeFSOBJ = $(PBeFSSDR)/obj/Distribution.o \
+           $(PBeFSSDR)/obj/Grid.o \
+           $(PBeFSSDR)/obj/SearchUtils.o \
+           $(PBeFSSDR)/obj/Solution.o
 
-AStINC = -I$(AStSDR)/include
+PBeFSINC = -I$(PBeFSSDR)/include
 
-AStH   = $(AStSDR)/include/AStarSearch/AStar.h \
-         $(AStSDR)/include/AStarSearch/AStarSearch.h \
-         $(AStSDR)/include/AStarSearch/BranchAndBound.h \
-         $(AStSDR)/include/AStarSearch/Distribution.h \
-         $(AStSDR)/include/AStarSearch/Domain.h \
-         $(AStSDR)/include/AStarSearch/ExplicitGraph.h \
-         $(AStSDR)/include/AStarSearch/Grid.h \
-         $(AStSDR)/include/AStarSearch/HDAStar.h \
-         $(AStSDR)/include/AStarSearch/Node.h \
-         $(AStSDR)/include/AStarSearch/NodeTable.h \
-         $(AStSDR)/include/AStarSearch/OpenList.h \
-         $(AStSDR)/include/AStarSearch/PASE.h \
-         $(AStSDR)/include/AStarSearch/ParallelBranchAndBound.h \
-         $(AStSDR)/include/AStarSearch/SPAStar.h \
-         $(AStSDR)/include/AStarSearch/SafePBNF.h \
-         $(AStSDR)/include/AStarSearch/SearchUtils.h \
-         $(AStSDR)/include/AStarSearch/SequenceScore.h \
-         $(AStSDR)/include/AStarSearch/SlowDomain.h \
-         $(AStSDR)/include/AStarSearch/SlidingTile.h \
-         $(AStSDR)/include/AStarSearch/Solution.h \
-         $(AStSDR)/include/AStarSearch/ThreadRuntime.h
+PBeFSH   = $(PBeFSSDR)/include/PBeFS/PBeFS.h \
+           $(PBeFSSDR)/include/PBeFS/astar.h \
+           $(PBeFSSDR)/include/PBeFS/bnb.h \
+           $(PBeFSSDR)/include/PBeFS/core.h \
+           $(PBeFSSDR)/include/PBeFS/core/SearchUtils.h \
+           $(PBeFSSDR)/include/PBeFS/core/ThreadRuntime.h \
+           $(PBeFSSDR)/include/PBeFS/astar/AStar.h \
+           $(PBeFSSDR)/include/PBeFS/astar/Distribution.h \
+           $(PBeFSSDR)/include/PBeFS/astar/Domain.h \
+           $(PBeFSSDR)/include/PBeFS/astar/ExplicitGraph.h \
+           $(PBeFSSDR)/include/PBeFS/astar/Grid.h \
+           $(PBeFSSDR)/include/PBeFS/astar/HDAStar.h \
+           $(PBeFSSDR)/include/PBeFS/astar/Node.h \
+           $(PBeFSSDR)/include/PBeFS/astar/NodeTable.h \
+           $(PBeFSSDR)/include/PBeFS/astar/OpenList.h \
+           $(PBeFSSDR)/include/PBeFS/astar/PASE.h \
+           $(PBeFSSDR)/include/PBeFS/astar/SPAStar.h \
+           $(PBeFSSDR)/include/PBeFS/astar/SafePBNF.h \
+           $(PBeFSSDR)/include/PBeFS/astar/SequenceScore.h \
+           $(PBeFSSDR)/include/PBeFS/astar/SlidingTile.h \
+           $(PBeFSSDR)/include/PBeFS/astar/SlowDomain.h \
+           $(PBeFSSDR)/include/PBeFS/astar/Solution.h \
+           $(PBeFSSDR)/include/PBeFS/bnb/BranchAndBound.h \
+           $(PBeFSSDR)/include/PBeFS/bnb/ParallelBranchAndBound.h
 
 # the headers of the optional runtimes- - - - - - - - - - - - - - - - - - - -
 
-AStOMPH = $(AStSDR)/include/AStarSearch/OpenMPRuntime.h
-AStFFH  = $(AStSDR)/include/AStarSearch/FastFlowRuntime.h \
-          $(AStSDR)/include/AStarSearch/FarmAStar.h \
-          $(AStSDR)/include/AStarSearch/FarmBranchAndBound.h
-AStMPIH = $(AStSDR)/include/AStarSearch/HDAStarMPI.h \
-          $(AStSDR)/include/AStarSearch/MPIBranchAndBound.h \
-          $(AStSDR)/include/AStarSearch/MPIMailbox.h
+PBeFSOMPH = $(PBeFSSDR)/include/PBeFS/core/OpenMPRuntime.h
+PBeFSFFH  = $(PBeFSSDR)/include/PBeFS/core/FastFlowRuntime.h \
+            $(PBeFSSDR)/include/PBeFS/astar/FarmAStar.h \
+            $(PBeFSSDR)/include/PBeFS/bnb/FarmBranchAndBound.h
+PBeFSMPIH = $(PBeFSSDR)/include/PBeFS/astar/HDAStarMPI.h \
+            $(PBeFSSDR)/include/PBeFS/bnb/MPIBranchAndBound.h \
+            $(PBeFSSDR)/include/PBeFS/core/MPIMailbox.h
 
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 clean::
-	rm -f $(AStOBJ) $(AStSDR)/*~ $(AStSDR)/include/AStarSearch/*~ $(AStSDR)/src/*~
+	rm -f $(PBeFSOBJ) $(PBeFSSDR)/*~ $(PBeFSSDR)/include/PBeFS/*~ \
+	      $(PBeFSSDR)/include/PBeFS/*/*~ $(PBeFSSDR)/src/*~
 
 # dependencies: every .o from its .cpp + every recursively included .h- - - -
 
-$(AStSDR)/obj/Distribution.o: $(AStSDR)/src/Distribution.cpp $(AStH)
-	$(CC) -c $(AStSDR)/src/Distribution.cpp -o $@ $(AStINC) $(SW)
+$(PBeFSSDR)/obj/Distribution.o: $(PBeFSSDR)/src/Distribution.cpp $(PBeFSH)
+	$(CC) -c $(PBeFSSDR)/src/Distribution.cpp -o $@ $(PBeFSINC) $(SW)
 
-$(AStSDR)/obj/Grid.o: $(AStSDR)/src/Grid.cpp $(AStH)
-	$(CC) -c $(AStSDR)/src/Grid.cpp -o $@ $(AStINC) $(SW)
+$(PBeFSSDR)/obj/Grid.o: $(PBeFSSDR)/src/Grid.cpp $(PBeFSH)
+	$(CC) -c $(PBeFSSDR)/src/Grid.cpp -o $@ $(PBeFSINC) $(SW)
 
-$(AStSDR)/obj/SearchUtils.o: $(AStSDR)/src/SearchUtils.cpp $(AStH)
-	$(CC) -c $(AStSDR)/src/SearchUtils.cpp -o $@ $(AStINC) $(SW)
+$(PBeFSSDR)/obj/SearchUtils.o: $(PBeFSSDR)/src/SearchUtils.cpp $(PBeFSH)
+	$(CC) -c $(PBeFSSDR)/src/SearchUtils.cpp -o $@ $(PBeFSINC) $(SW)
 
-$(AStSDR)/obj/Solution.o: $(AStSDR)/src/Solution.cpp $(AStH)
-	$(CC) -c $(AStSDR)/src/Solution.cpp -o $@ $(AStINC) $(SW)
+$(PBeFSSDR)/obj/Solution.o: $(PBeFSSDR)/src/Solution.cpp $(PBeFSH)
+	$(CC) -c $(PBeFSSDR)/src/Solution.cpp -o $@ $(PBeFSINC) $(SW)
 
 ############################ End of makefile #################################

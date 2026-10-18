@@ -1,10 +1,9 @@
-Sequential and Parallel A* Search
-=================================
+Parallel Best-First Search
+==========================
 
-AStarSearch is a C++20 library for the sequential and parallel A* search of
-an implicit state-space graph, on C++ threads, OpenMP, FastFlow and MPI,
-and for the best-first search with an incumbent (branch-and-bound) on the
-same parallel machinery.
+PBeFS is a C++20 library for the sequential and parallel best-first search
+of an implicit state-space graph (A*) and of a tree with an incumbent
+(branch-and-bound), on C++ threads, OpenMP, FastFlow and MPI.
 
 .. toctree::
    :maxdepth: 1

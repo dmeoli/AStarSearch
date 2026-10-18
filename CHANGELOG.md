@@ -60,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tools/bench/campaign.sh and tools/bench/tables.py, the runs and the
   tables of the benchmarks
 - the build with CMake (installed package found by
-  find_package(AStarSearch)) and with the makefiles; the version from the
+  find_package(PBeFS)) and with the makefiles; the version from the
   git tag
 - the documentation on the pages of the repository, a site of Sphinx with
   the theme of Read the Docs written from the README by docs/pages.py
@@ -78,5 +78,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FastFlow is found in /opt/fastflow or on the include path, and CMake
   downloads a fixed commit when it is not there, instead of being a git
   submodule
+- the library is PBeFS (Parallel Best-First Search), instead of
+  AStarSearch, since it holds the branch-and-bound beside A*: the CMake
+  package, the library, the directory of the headers, the include guards,
+  the namespace (PBeFS_di_unipi_it) and the macros (PBEFS_*) are renamed,
+  and the headers are in three layers, core/ (the runtimes, the messages
+  over MPI with the termination of Mattern written once, and the helpers),
+  astar/ (the graph searches and their domains) and bnb/ (the tree
+  searches), each with its header (core.h, astar.h, bnb.h) and PBeFS.h for
+  all of them
 
-[Unreleased]: https://github.com/dmeoli/AStarSearch/commits/main
+[Unreleased]: https://github.com/dmeoli/PBeFS/commits/main

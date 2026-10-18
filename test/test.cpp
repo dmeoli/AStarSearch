@@ -2,7 +2,7 @@
 /*----------------------------- File test.cpp ------------------------------*/
 /*--------------------------------------------------------------------------*/
 /** @file
- * Tester of AStarSearch: each case, selected by the first argument, solves
+ * Tester of PBeFS: each case, selected by the first argument, solves
  * instances of known optimal cost with one family of searches and checks
  * both the cost and the path, which must start at the initial state, end at
  * a goal, be made of edges of the Domain and cost what the Solution says.
@@ -67,52 +67,52 @@
 
 #include <vector>
 
-#include "AStarSearchConfig.h"
+#include "PBeFSConfig.h"
 
-#include "AStarSearch/AStar.h"
+#include "PBeFS/astar/AStar.h"
 
-#include "AStarSearch/BranchAndBound.h"
+#include "PBeFS/bnb/BranchAndBound.h"
 
-#include "AStarSearch/ParallelBranchAndBound.h"
+#include "PBeFS/bnb/ParallelBranchAndBound.h"
 
-#include "AStarSearch/Distribution.h"
+#include "PBeFS/astar/Distribution.h"
 
-#include "AStarSearch/ExplicitGraph.h"
+#include "PBeFS/astar/ExplicitGraph.h"
 
-#include "AStarSearch/Grid.h"
+#include "PBeFS/astar/Grid.h"
 
-#include "AStarSearch/HDAStar.h"
+#include "PBeFS/astar/HDAStar.h"
 
-#include "AStarSearch/SPAStar.h"
+#include "PBeFS/astar/SPAStar.h"
 
-#include "AStarSearch/PASE.h"
+#include "PBeFS/astar/PASE.h"
 
-#include "AStarSearch/SafePBNF.h"
+#include "PBeFS/astar/SafePBNF.h"
 
-#include "AStarSearch/SlowDomain.h"
+#include "PBeFS/astar/SlowDomain.h"
 
-#include "AStarSearch/SlidingTile.h"
+#include "PBeFS/astar/SlidingTile.h"
 
-#ifdef ASTAR_HAS_OPENMP
- #include "AStarSearch/OpenMPRuntime.h"
+#ifdef PBEFS_HAS_OPENMP
+ #include "PBeFS/core/OpenMPRuntime.h"
 #endif
 
-#ifdef ASTAR_HAS_FASTFLOW
- #include "AStarSearch/FarmAStar.h"
- #include "AStarSearch/FarmBranchAndBound.h"
- #include "AStarSearch/FastFlowRuntime.h"
+#ifdef PBEFS_HAS_FASTFLOW
+ #include "PBeFS/astar/FarmAStar.h"
+ #include "PBeFS/bnb/FarmBranchAndBound.h"
+ #include "PBeFS/core/FastFlowRuntime.h"
 #endif
 
-#ifdef ASTAR_HAS_MPI
- #include "AStarSearch/HDAStarMPI.h"
- #include "AStarSearch/MPIBranchAndBound.h"
+#ifdef PBEFS_HAS_MPI
+ #include "PBeFS/astar/HDAStarMPI.h"
+ #include "PBeFS/bnb/MPIBranchAndBound.h"
 #endif
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
 /*--------------------------------------------------------------------------*/
 
-using namespace AStar_di_unipi_it;
+using namespace PBeFS_di_unipi_it;
 
 /*--------------------------------------------------------------------------*/
 /*---------------------------- GLOBAL VARIABLES ----------------------------*/
@@ -627,7 +627,7 @@ static void test_pase( const std::string & data )
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-#ifdef ASTAR_HAS_FASTFLOW
+#ifdef PBEFS_HAS_FASTFLOW
 
 // the master-worker FarmAStar, 1 to 8 workers, 1 or 4 nodes per task
 
@@ -673,7 +673,7 @@ static void test_farm( const std::string & data )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-#ifdef ASTAR_HAS_MPI
+#ifdef PBEFS_HAS_MPI
 
 // HDA* over MPI with every deterministic distribution
 
@@ -1176,7 +1176,7 @@ static auto bb_parallel( const Q & q , const ParallelBBOptions & o ,
  else
   if constexpr( K == 1 )
    return( solve( DistributedBranchAndBound< Q , Runtime >( q , o ) ) );
-  #ifdef ASTAR_HAS_FASTFLOW
+  #ifdef PBEFS_HAS_FASTFLOW
   else
    return( solve( FarmBranchAndBound< Q >( q , o ) ) );
   #endif
@@ -1245,7 +1245,7 @@ static void test_bb_parallel( const std::string & )
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-#ifdef ASTAR_HAS_MPI
+#ifdef PBEFS_HAS_MPI
 
 // the B&B over MPI on the knapsack against the dynamic program, with every
 // selection, in both senses (the minimization has no hash( n ), and hence
@@ -1325,7 +1325,7 @@ static const std::vector< Case > cases = {
  { "bb" , "-" , test_bb } ,
  { "bb-shared-thread" , "-" , test_bb_parallel< 0 , ThreadRuntime > } ,
  { "bb-dist-thread" , "-" , test_bb_parallel< 1 , ThreadRuntime > } ,
- #ifdef ASTAR_HAS_OPENMP
+ #ifdef PBEFS_HAS_OPENMP
   { "hda-openmp" , "openmp" , test_hda< OpenMPRuntime > } ,
   { "spa-openmp" , "openmp" , test_spa< OpenMPRuntime > } ,
   { "pbnf-openmp" , "openmp" , test_pbnf< OpenMPRuntime > } ,
@@ -1333,7 +1333,7 @@ static const std::vector< Case > cases = {
     test_bb_parallel< 0 , OpenMPRuntime > } ,
   { "bb-dist-openmp" , "openmp" , test_bb_parallel< 1 , OpenMPRuntime > } ,
  #endif
- #ifdef ASTAR_HAS_FASTFLOW
+ #ifdef PBEFS_HAS_FASTFLOW
   { "hda-fastflow" , "fastflow" , test_hda< FastFlowRuntime > } ,
   { "farm-fastflow" , "fastflow" , test_farm } ,
   { "bb-shared-fastflow" , "fastflow" ,
@@ -1343,7 +1343,7 @@ static const std::vector< Case > cases = {
   { "bb-farm-fastflow" , "fastflow" ,
     test_bb_parallel< 2 , FastFlowRuntime > } ,
  #endif
- #ifdef ASTAR_HAS_MPI
+ #ifdef PBEFS_HAS_MPI
   { "mpi" , "mpi" , test_mpi } ,
   { "bb-mpi" , "mpi" , test_bb_mpi } ,
  #endif
@@ -1358,15 +1358,15 @@ static void test_registry( const std::string & list )
  const auto built = []( const std::string & needs ) {
   if( needs == "-" )
    return( true );
-  #ifdef ASTAR_HAS_OPENMP
+  #ifdef PBEFS_HAS_OPENMP
    if( needs == "openmp" )
     return( true );
   #endif
-  #ifdef ASTAR_HAS_FASTFLOW
+  #ifdef PBEFS_HAS_FASTFLOW
    if( needs == "fastflow" )
     return( true );
   #endif
-  #ifdef ASTAR_HAS_MPI
+  #ifdef PBEFS_HAS_MPI
    if( needs == "mpi" )
     return( true );
   #endif
@@ -1414,7 +1414,7 @@ int main( int argc , char * argv[] )
  [[maybe_unused]] const bool mpi = ( c != cases.end() ) &&
                                    ( std::string( c->needs ) == "mpi" );
 
- #ifdef ASTAR_HAS_MPI
+ #ifdef PBEFS_HAS_MPI
   int rank = 0;
   if( mpi ) {
    MPI_Init( & argc , & argv );
@@ -1434,7 +1434,7 @@ int main( int argc , char * argv[] )
   ++failures;
   }
 
- #ifdef ASTAR_HAS_MPI
+ #ifdef PBEFS_HAS_MPI
   if( mpi ) {
    int all = 0;
    MPI_Allreduce( & failures , & all , 1 , MPI_INT , MPI_SUM ,

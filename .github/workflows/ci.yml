@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------- #
-#    Continuous integration of AStarSearch                                    #
+#    Continuous integration of PBeFS                                          #
 #                                                                             #
 #    Every push and pull request builds the library, the examples, the tools  #
 #    and the tester, and runs the tests: with CMake on Linux (gcc and clang), #
@@ -42,13 +42,13 @@ jobs:
       - name: Build
         run: cmake --build build -j 4
       - name: Test
-        run: ctest --test-dir build -L AStarSearch --output-on-failure
+        run: ctest --test-dir build -L PBeFS --output-on-failure
       # the installed package is found by find_package()
       - name: Install
         run: |
           p=${{ runner.temp }}/astar
           cmake --install build --prefix $p
-          test -f $p/lib/cmake/AStarSearch/AStarSearchConfig.cmake
+          test -f $p/lib/cmake/PBeFS/PBeFSConfig.cmake
 
   makefiles:
     name: Linux makefiles
@@ -63,7 +63,7 @@ jobs:
       # CMake downloads
       - name: FastFlow
         run: |
-          c=$(sed -n 's/^set(ASTAR_FASTFLOW_COMMIT \([0-9a-f]*\)$/\1/p' \
+          c=$(sed -n 's/^set(PBEFS_FASTFLOW_COMMIT \([0-9a-f]*\)$/\1/p' \
               CMakeLists.txt)
           sudo git clone -q https://github.com/fastflow/fastflow.git \
                /opt/fastflow
@@ -81,8 +81,8 @@ jobs:
         run: |
           p=${{ runner.temp }}/astar
           make install PREFIX=$p
-          test -f $p/lib/libAStarSearch.a
-          test -f $p/include/AStarSearch/AStarSearch.h
+          test -f $p/lib/libPBeFS.a
+          test -f $p/include/PBeFS/PBeFS.h
 
   sanitizers:
     name: Linux ${{ matrix.sanitizer }}
@@ -107,7 +107,7 @@ jobs:
       - name: Configure
         run: >
           cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          -DASTAR_WITH_MPI=OFF -DASTAR_BUILD_TOOLS=OFF
+          -DPBEFS_WITH_MPI=OFF -DPBEFS_BUILD_TOOLS=OFF
           -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
           -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.flags }}"
       - name: Build
@@ -122,7 +122,7 @@ jobs:
           LSAN_OPTIONS: suppressions=${{ github.workspace }}/test/lsan.supp
           UBSAN_OPTIONS: halt_on_error=1 print_stacktrace=1
         run: >
-          ctest --test-dir build -L AStarSearch --output-on-failure
+          ctest --test-dir build -L PBeFS --output-on-failure
           ${{ matrix.tests }}
 
   # the line coverage of the tests, in Debug and without the sanitizers,
@@ -145,7 +145,7 @@ jobs:
       - name: Build
         run: cmake --build build -j 4
       - name: Test
-        run: ctest --test-dir build -L AStarSearch --output-on-failure
+        run: ctest --test-dir build -L PBeFS --output-on-failure
       - name: Coverage
         run: |
           lcov --capture --directory build --output-file lcov.info \
@@ -172,7 +172,7 @@ jobs:
       - name: Build
         run: cmake --build build -j 3
       - name: Test
-        run: ctest --test-dir build -L AStarSearch --output-on-failure
+        run: ctest --test-dir build -L PBeFS --output-on-failure
 
   windows:
     name: Windows MSVC
@@ -182,9 +182,9 @@ jobs:
       # FastFlow relies on POSIX, and MPI is left out: the threads and OpenMP
       - name: Configure
         run: >
-          cmake -S . -B build -DASTAR_WITH_FASTFLOW=OFF -DASTAR_WITH_MPI=OFF
+          cmake -S . -B build -DPBEFS_WITH_FASTFLOW=OFF -DPBEFS_WITH_MPI=OFF
       - name: Build
         run: cmake --build build --config Release -j 4
       - name: Test
         run: >
-          ctest --test-dir build -C Release -L AStarSearch --output-on-failure
+          ctest --test-dir build -C Release -L PBeFS --output-on-failure

@@ -14,7 +14,7 @@
 #   and the artificial work per expansion, then the line of AStarBench.       #
 #   The runs of a table are pinned to the cores <first core> , ... of the     #
 #   NUMA node <NUMA node> (default 96 and 1), the workers one per core        #
-#   (ASTAR_PIN), and the parallel ones are repeated twice for the noise.      #
+#   (PBEFS_PIN), and the parallel ones are repeated twice for the noise.      #
 #   Linux only: numactl places the runs.                                      #
 #                                                                             #
 #                                Donato Meoli                                 #
@@ -35,7 +35,7 @@ M=$BUILD/tools/AStarBenchMPI
 K=$SRC/data/15-puzzle/korf100.txt
 THREADS=${THREADS:-"1 2 4 8 16 32 48 64 96"}
 mkdir -p "$OUT"
-export ASTAR_PIN=1
+export PBEFS_PIN=1
 
 # runs AStarBench on t cores, the line prefixed by table, cores and slow
 run() { # table cores slow options...
@@ -51,7 +51,7 @@ run_mpi() { # table cores slow options...
   local tab=$1 t=$2 slow=$3
   shift 3
   mpirun -np "$t" --bind-to core --cpu-set $C0-$(( C0 + t - 1 )) \
-         -x ASTAR_PIN numactl --membind=$NODE "$M" --slow "$slow" "$@" \
+         -x PBEFS_PIN numactl --membind=$NODE "$M" --slow "$slow" "$@" \
          2>> "$OUT/errors.log" | sed "s/^/$tab,$t,$slow,/" >> "$OUT/$tab.csv"
   }
 

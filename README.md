@@ -1,22 +1,33 @@
-# Sequential and Parallel A* Search
+# Parallel Best-First Search
 
-[![CI](https://github.com/dmeoli/AStarSearch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dmeoli/AStarSearch/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/dmeoli/AStarSearch)](https://github.com/dmeoli/AStarSearch/releases)
-[![Coverage Status](https://coveralls.io/repos/github/dmeoli/AStarSearch/badge.svg?branch=main)](https://coveralls.io/github/dmeoli/AStarSearch?branch=main)
-[![Documentation](https://img.shields.io/badge/docs-online-blue)](https://dmeoli.github.io/AStarSearch/)
+[![CI](https://github.com/dmeoli/PBeFS/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dmeoli/PBeFS/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/dmeoli/PBeFS)](https://github.com/dmeoli/PBeFS/releases)
+[![Coverage Status](https://coveralls.io/repos/github/dmeoli/PBeFS/badge.svg?branch=main)](https://coveralls.io/github/dmeoli/PBeFS?branch=main)
+[![Documentation](https://img.shields.io/badge/docs-online-blue)](https://dmeoli.github.io/PBeFS/)
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-20-blue)](https://en.cppreference.com/w/cpp/20)
-[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://github.com/dmeoli/AStarSearch/actions/workflows/ci.yml)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://github.com/dmeoli/PBeFS/actions/workflows/ci.yml)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 
-AStarSearch is a C++20 library for the sequential and parallel A*
-search [[9]](#ref-9) of an implicit state-space graph, i.e., a graph given by an
-initial state, a goal predicate and a procedure that generates the
-successors of a state (cf. [[10]](#ref-10)). With each successor the procedure also
-gives the cost of the edge and an estimate h of the distance to a goal. The
-parallel searches follow the taxonomy of the survey of Fukunaga et al. [[1]](#ref-1),
-and they run on C++ threads, OpenMP, FastFlow [[12]](#ref-12) and MPI; hence, one can
-compare the same algorithm across runtimes, and the same runtime across
-algorithms.
+PBeFS is a C++20 library for the sequential and parallel best-first search
+of two kinds of problems: the A* search [[9]](#ref-9) of an implicit state-space
+graph, i.e., a graph given by an initial state, a goal predicate and a
+procedure that generates the successors of a state (cf. [[10]](#ref-10)), and the
+Branch-and-Bound (B&B) of a tree whose nodes have a bound and possibly a
+feasible value. In fact, A* is the special case of the general B&B in which
+the bound of a node is f = g + h and a goal gives a feasible solution of
+value g (cf. [[17]](#ref-17)), and the two searches share the parallel schemes and
+the runtimes; they differ in that a graph has duplicates, which A* detects
+with a closed list, while a tree has none but has an incumbent. The
+parallel A* searches follow the taxonomy of the survey of Fukunaga et al.
+[[1]](#ref-1), and the parallel B&B searches that of the survey of Gendron and
+Crainic [[16]](#ref-16). They run on C++ threads, OpenMP, FastFlow [[12]](#ref-12) and MPI;
+hence, one can compare the same algorithm across runtimes, and the same
+runtime across algorithms. The headers are in three layers:
+`include/PBeFS/core` holds the runtimes, the messages over MPI and the
+helpers that do not depend on the kind of search, `include/PBeFS/astar`
+the graph searches with their domains, and `include/PBeFS/bnb` the tree
+searches; `core.h`, `astar.h`, `bnb.h` and `PBeFS.h` include a layer, or
+all of them, save the parts that need OpenMP, FastFlow or MPI.
 
 ## The search problem
 
@@ -31,7 +42,7 @@ exact, since it reopens a closed node reached through a cheaper path; the
 parallel searches, however, may pay several re-expansions for the same node.
 
 All the algorithms are templates over the problem, which is described by a
-type satisfying the concept `Domain` of `include/AStarSearch/Domain.h`.
+type satisfying the concept `Domain` of `include/PBeFS/astar/Domain.h`.
 Such a type gives `state_type` and an arithmetic `cost_type`, together
 with the methods
 `initial_state()`, `is_goal( s )`, `heuristic( s )`, `hash( s )` and
@@ -141,9 +152,15 @@ a queue shared by the workers as in SPA* (`SharedBranchAndBound`) or with a
 queue per worker and the children sent to their owners as in HDA*
 (`DistributedBranchAndBound`), both on the three runtimes, master-worker on
 a FastFlow farm (`FarmBranchAndBound`), or with one MPI process per worker
-(`MPIBranchAndBoundSearch`, whose nodes travel as bytes). SafePBNF and PA*SE
-have no counterpart, since they exist to handle duplicates and
-re-expansions, which a tree does not have. Its design is discussed in
+(`MPIBranchAndBoundSearch`, whose nodes travel as bytes). In the taxonomy of
+Gendron and Crainic [[16]](#ref-16), all of them build one tree in parallel (their
+type 2), asynchronously, with a single pool of open nodes (the shared queue
+and the farm) or with a pool per worker (the distributed queues and MPI);
+the parallelism inside a node (their type 1) is left to the evaluation of
+the problem, and the search of several trees at once (their type 3) is not
+provided. SafePBNF and PA*SE have no counterpart, since they exist to
+handle duplicates and re-expansions, which a tree does not have; for the
+same reason, the owner of a node only balances the load. Its design is discussed in
 [docs/branch-and-bound.md](docs/branch-and-bound.md), and the tests check
 the variants on the 0-1 knapsack against the dynamic program.
 
@@ -172,30 +189,30 @@ The library needs only a C++20 compiler, together with CMake 3.21 or GNU
 make. OpenMP, MPI and FastFlow are optional, and each of them is used if it
 is found. FastFlow is header-only: CMake looks for it in `FASTFLOW_ROOT`
 (`/opt/fastflow` by default) and on the include path, and if it is not
-there downloads the commit `ASTAR_FASTFLOW_COMMIT` (unless
-`ASTAR_FETCH_FASTFLOW` is `OFF`), while the makefiles take its headers from
+there downloads the commit `PBEFS_FASTFLOW_COMMIT` (unless
+`PBEFS_FETCH_FASTFLOW` is `OFF`), while the makefiles take its headers from
 `FF_ROOT` (`/opt/fastflow` by default). With CMake one has
 
 ```sh
-git clone https://github.com/dmeoli/AStarSearch.git
-cmake -S AStarSearch -B build -DCMAKE_BUILD_TYPE=Release
+git clone https://github.com/dmeoli/PBeFS.git
+cmake -S PBeFS -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build
 cmake --install build --prefix <prefix>
 ```
 
-where `ASTAR_WITH_OPENMP`, `ASTAR_WITH_MPI` and `ASTAR_WITH_FASTFLOW` (all
-`ON` by default) can exclude a runtime, and `ASTAR_BUILD_TESTS`,
-`ASTAR_BUILD_EXAMPLES` and `ASTAR_BUILD_TOOLS` (`ON` only when AStarSearch
+where `PBEFS_WITH_OPENMP`, `PBEFS_WITH_MPI` and `PBEFS_WITH_FASTFLOW` (all
+`ON` by default) can exclude a runtime, and `PBEFS_BUILD_TESTS`,
+`PBEFS_BUILD_EXAMPLES` and `PBEFS_BUILD_TOOLS` (`ON` only when PBeFS
 is the top-level project) the tests, the examples and the benchmark. A CMake project then
 uses the library with
 
 ```cmake
-find_package(AStarSearch REQUIRED)
-target_link_libraries(myTarget PRIVATE AStarSearch::AStarSearch)
+find_package(PBeFS REQUIRED)
+target_link_libraries(myTarget PRIVATE PBeFS::PBeFS)
 ```
 
-adding `AStarSearch::OpenMP`, `AStarSearch::MPI` or `AStarSearch::FastFlow`
+adding `PBeFS::OpenMP`, `PBeFS::MPI` or `PBeFS::FastFlow`
 for the corresponding runtime. Since the searches are templates over the
 `Domain`, they are in the headers, and the library (`src`) holds only what
 does not depend on it, i.e., the grid maps, the random tables of Zobrist
@@ -212,8 +229,8 @@ sequentially, and then with HDA* and Abstract Zobrist hashing on 8 threads,
 reads
 
 ```cpp
-#include "AStarSearch/AStarSearch.h"
-using namespace AStar_di_unipi_it;
+#include "PBeFS/PBeFS.h"
+using namespace PBeFS_di_unipi_it;
 
 int main( void )
 {
@@ -230,7 +247,7 @@ int main( void )
 ```
 
 The documentation is at
-[dmeoli.github.io/AStarSearch](https://dmeoli.github.io/AStarSearch/): a
+[dmeoli.github.io/PBeFS](https://dmeoli.github.io/PBeFS/): a
 site of Sphinx with the theme of Read the Docs, made of the sections of this
 README, with the reference of the classes and of the functions that Exhale
 and Breathe build from the comments of the headers (through Doxygen).
@@ -266,7 +283,7 @@ distribution of the library on the 100 instances of Korf
 (`data/15-puzzle/korf100.txt`), on the 8-puzzle and on the grids, and it
 prints a line of CSV per run with the cost, the counters and the time;
 `AStarBenchMPI` is its MPI counterpart, to be started with `mpirun`. If the
-environment variable `ASTAR_PIN` is set, the i-th worker is pinned to the
+environment variable `PBEFS_PIN` is set, the i-th worker is pinned to the
 i-th CPU of the affinity mask of the process (as given, e.g., by `numactl
 --physcpubind` or `taskset`). On machines with several sockets this is
 usually needed for the timings to be repeatable.
@@ -293,13 +310,13 @@ line coverage of the tests is on Coveralls.
 
 ## Citing
 
-If AStarSearch is useful in a publication, one can cite it as
+If PBeFS is useful in a publication, one can cite it as
 
 ```bibtex
-@software{AStarSearch,
+@software{PBeFS,
   author = {Meoli, Donato},
-  title  = {{AStarSearch}: sequential and parallel {A*} search},
-  url    = {https://github.com/dmeoli/AStarSearch},
+  title  = {{PBeFS}: Parallel Best-First Search},
+  url    = {https://github.com/dmeoli/PBeFS},
   year   = {2026}
 }
 ```
@@ -349,3 +366,7 @@ at the University of Pisa.
 <a id="ref-14"></a>[14] M. Held and R. M. Karp, [*A dynamic programming approach to sequencing problems*](https://doi.org/10.1137/0110015), Journal of the Society for Industrial and Applied Mathematics 10(1), 196-210, 1962.
 
 <a id="ref-15"></a>[15] N. R. Sturtevant, [*Benchmarks for grid-based pathfinding*](https://doi.org/10.1109/TCIAIG.2012.2197681), IEEE Transactions on Computational Intelligence and AI in Games 4(2), 144-148, 2012.
+
+<a id="ref-16"></a>[16] B. Gendron and T. G. Crainic, [*Parallel branch-and-bound algorithms: survey and synthesis*](https://doi.org/10.1287/opre.42.6.1042), Operations Research 42(6), 1042-1066, 1994.
+
+<a id="ref-17"></a>[17] D. S. Nau, V. Kumar and L. Kanal, [*General branch and bound, and its relation to A\* and AO\**](https://doi.org/10.1016/0004-3702(84)90004-3), Artificial Intelligence 23(1), 29-58, 1984.

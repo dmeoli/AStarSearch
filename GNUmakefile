@@ -9,7 +9,7 @@
 #   make test        runs the cases of test/tests.txt (MPI apart)             #
 #   make test_mpi    runs the cases with MPI under mpiexec                    #
 #   make bench       builds the benchmark tools                               #
-#   make install     builds lib/libAStarSearch.a and copies it, with the      #
+#   make install     builds lib/libPBeFS.a and copies it, with the            #
 #                    headers, into $(PREFIX)/lib and $(PREFIX)/include        #
 #                                                                             #
 #                                Donato Meoli                                 #
@@ -35,19 +35,19 @@ bench:
 
 # the library, from the objects of the makefile of the library
 
-AStSDR = .
+PBeFSSDR = .
 CC = g++
 SW = -O3 -std=c++20 -Wall -Wextra -DNDEBUG
 include makefile
 
-lib/libAStarSearch.a: $(AStOBJ)
+lib/libPBeFS.a: $(PBeFSOBJ)
 	mkdir -p lib
-	ar rcs $@ $(AStOBJ)
+	ar rcs $@ $(PBeFSOBJ)
 
-install: lib/libAStarSearch.a
+install: lib/libPBeFS.a
 	mkdir -p $(PREFIX)/include $(PREFIX)/lib
-	cp -r include/AStarSearch $(PREFIX)/include/
-	cp lib/libAStarSearch.a $(PREFIX)/lib/
+	cp -r include/PBeFS $(PREFIX)/include/
+	cp lib/libPBeFS.a $(PREFIX)/lib/
 
 clean::
 	$(MAKE) -C examples clean

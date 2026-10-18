@@ -1,4 +1,4 @@
-# LeakSanitizer suppressions for the tests of AStarSearch.
+# LeakSanitizer suppressions for the tests of PBeFS.
 #
 # In blocking mode, the load balancer of a FastFlow farm allocates with
 # malloc() the mutex and the condition variable on which its input waits,

@@ -28,7 +28,7 @@
 
 #include <vector>
 
-#include "AStarSearch/SearchUtils.h"
+#include "PBeFS/core/SearchUtils.h"
 
 #if defined( __linux__ )
  #include <pthread.h>
@@ -40,7 +40,7 @@
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
 /*--------------------------------------------------------------------------*/
 
-using namespace AStar_di_unipi_it;
+using namespace PBeFS_di_unipi_it;
 
 /*--------------------------------------------------------------------------*/
 /*---------------------------- LOCAL CONSTANTS -----------------------------*/
@@ -57,7 +57,7 @@ namespace {
 /*------------------------ THE CPUS OF THE PROCESS -------------------------*/
 /*--------------------------------------------------------------------------*/
 
-const std::vector< int > & AStar_di_unipi_it::affinity_cpus( void )
+const std::vector< int > & PBeFS_di_unipi_it::affinity_cpus( void )
 {
  static const std::vector< int > cpus = [] {
   std::vector< int > c;
@@ -76,7 +76,7 @@ const std::vector< int > & AStar_di_unipi_it::affinity_cpus( void )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-unsigned AStar_di_unipi_it::available_cpus( void )
+unsigned PBeFS_di_unipi_it::available_cpus( void )
 {
  const std::vector< int > & cpus = affinity_cpus();
  if( ! cpus.empty() )
@@ -86,11 +86,11 @@ unsigned AStar_di_unipi_it::available_cpus( void )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-void AStar_di_unipi_it::pin_worker( unsigned i ) noexcept
+void PBeFS_di_unipi_it::pin_worker( unsigned i ) noexcept
 {
  #if defined( __linux__ )
   static const bool pin = [] {
-   const char * v = std::getenv( "ASTAR_PIN" );
+   const char * v = std::getenv( "PBEFS_PIN" );
    return( v && *v && ( v[ 0 ] != '0' ) );
    }();
   if( ! pin )
@@ -111,7 +111,7 @@ void AStar_di_unipi_it::pin_worker( unsigned i ) noexcept
 /*------------------------------- HUGE PAGES -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-void * AStar_di_unipi_it::huge_allocate( std::size_t bytes )
+void * PBeFS_di_unipi_it::huge_allocate( std::size_t bytes )
 {
  #if defined( __linux__ )
   if( bytes >= c_huge ) {
@@ -130,7 +130,7 @@ void * AStar_di_unipi_it::huge_allocate( std::size_t bytes )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-void AStar_di_unipi_it::huge_deallocate( void * p ) noexcept
+void PBeFS_di_unipi_it::huge_deallocate( void * p ) noexcept
 {
  std::free( p );
  }

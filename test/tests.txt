@@ -1,10 +1,10 @@
 # --------------------------------------------------------------------------- #
 #    tests.txt                                                                #
 #                                                                             #
-#    The cases of the tester of AStarSearch, one per line: the name of the    #
+#    The cases of the tester of PBeFS, one per line: the name of the          #
 #    case, the runtime it needs ("-" if none) and what it checks. Both        #
 #    test/CMakeLists.txt and test/makefile read this list, ctest runs each    #
-#    case as the test AStarSearch.<name> (the case mpi with 1, 2 and 4        #
+#    case as the test PBeFS.<name> (the case mpi with 1, 2 and 4              #
 #    processes), and the case registry checks that the list and the cases     #
 #    of the tester are the same.                                              #
 #                                                                             #

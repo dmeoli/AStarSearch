@@ -2,7 +2,7 @@
 ################################ makefile ####################################
 ##############################################################################
 #                                                                            #
-#   makefile of the examples of AStarSearch: 8Puzzle, 15Puzzle, FindPath,    #
+#   makefile of the examples of PBeFS: 8Puzzle, 15Puzzle, FindPath,          #
 #   RouteFinding, NQueens, WaterJugs, MissionariesCannibals, VacuumWorld     #
 #   and TravelingSalesman                                                    #
 #                                                                            #
@@ -52,15 +52,15 @@ clean::
 
 # define & include the necessary modules- - - - - - - - - - - - - - - - - - -
 
-# AStarSearch (without makefile-c: the examples use no parallel runtime
+# PBeFS (without makefile-c: the examples use no parallel runtime
 # save the C++ threads)
-AStSDR = ..
-include $(AStSDR)/makefile
+PBeFSSDR = ..
+include $(PBeFSSDR)/makefile
 
 # the programs- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-$(DIR)/%: $(DIR)/%.cpp $(AStH) $(AStOBJ)
-	$(CC) -o $@ $< $(AStOBJ) $(AStINC) -pthread $(SW)
+$(DIR)/%: $(DIR)/%.cpp $(PBeFSH) $(PBeFSOBJ)
+	$(CC) -o $@ $< $(PBeFSOBJ) $(PBeFSINC) -pthread $(SW)
 
 # distclean target- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

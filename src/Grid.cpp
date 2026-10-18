@@ -26,15 +26,15 @@
 
 #include <string>
 
-#include "AStarSearch/Grid.h"
+#include "PBeFS/astar/Grid.h"
 
-#include "AStarSearch/SearchUtils.h"
+#include "PBeFS/core/SearchUtils.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
 /*--------------------------------------------------------------------------*/
 
-using namespace AStar_di_unipi_it;
+using namespace PBeFS_di_unipi_it;
 
 /*--------------------------------------------------------------------------*/
 /*------------------------- CONSTRUCTION OF A MAP --------------------------*/

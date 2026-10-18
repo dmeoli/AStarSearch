@@ -37,21 +37,21 @@
 
 #include <string>
 
-#include "AStarSearch/AStar.h"
+#include "PBeFS/astar/AStar.h"
 
-#include "AStarSearch/Distribution.h"
+#include "PBeFS/astar/Distribution.h"
 
-#include "AStarSearch/HDAStar.h"
+#include "PBeFS/astar/HDAStar.h"
 
-#include "AStarSearch/SequenceScore.h"
+#include "PBeFS/astar/SequenceScore.h"
 
-#include "AStarSearch/SlidingTile.h"
+#include "PBeFS/astar/SlidingTile.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
 /*--------------------------------------------------------------------------*/
 
-using namespace AStar_di_unipi_it;
+using namespace PBeFS_di_unipi_it;
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- FUNCTIONS --------------------------------*/

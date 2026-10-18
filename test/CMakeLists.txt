@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------- #
-#    CMake file for AStarSearch/test                                          #
+#    CMake file for PBeFS/test                                                #
 #                                                                             #
 #    In this file we define the tests of the library: one tester, test.cpp,   #
 #    run once for each case, every case of a parallel runtime only if the     #
@@ -22,15 +22,15 @@ endif ()
 
 if (TARGET ${modName}_OpenMP)
     target_link_libraries(${modName}_test PRIVATE ${modNamespace}::OpenMP)
-    target_compile_definitions(${modName}_test PRIVATE ASTAR_HAS_OPENMP)
+    target_compile_definitions(${modName}_test PRIVATE PBEFS_HAS_OPENMP)
 endif ()
 if (TARGET ${modName}_FastFlow)
     target_link_libraries(${modName}_test PRIVATE ${modNamespace}::FastFlow)
-    target_compile_definitions(${modName}_test PRIVATE ASTAR_HAS_FASTFLOW)
+    target_compile_definitions(${modName}_test PRIVATE PBEFS_HAS_FASTFLOW)
 endif ()
 if (TARGET ${modName}_MPI)
     target_link_libraries(${modName}_test PRIVATE ${modNamespace}::MPI)
-    target_compile_definitions(${modName}_test PRIVATE ASTAR_HAS_MPI)
+    target_compile_definitions(${modName}_test PRIVATE PBEFS_HAS_MPI)
 endif ()
 
 set(dataDir ${PROJECT_SOURCE_DIR}/data)
@@ -74,7 +74,7 @@ add_test(NAME ${modName}.registry
                  ${CMAKE_CURRENT_SOURCE_DIR}/tests.txt)
 
 # ----- the label of this library's tests ----------------------------------- #
-# The label lets the CI select exactly these tests with `ctest -L AStarSearch`.
+# The label lets the CI select exactly these tests with `ctest -L PBeFS`.
 get_property(_tests DIRECTORY PROPERTY TESTS)
 if (_tests)
     set_tests_properties(${_tests} PROPERTIES LABELS "${modName}"
