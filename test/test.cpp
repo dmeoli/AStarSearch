@@ -942,6 +942,7 @@ static void test_bb( const std::string & )
   const double opt = double( kp.optimum() );
   const std::string tag = " knapsack " + std::to_string( i++ );
   for( Selection sel : { Selection::best_first , Selection::depth_first ,
+                         Selection::breadth_first ,
                          Selection::best_estimate , Selection::plunging } ) {
    BBOptions o;
    o.selection = sel;
@@ -1017,6 +1018,7 @@ static void test_bb_parallel( const std::string & )
   const std::string tag = " knapsack " + std::to_string( i++ );
   for( unsigned p : { 1u , 2u , 3u , 8u } )
    for( Selection sel : { Selection::best_first , Selection::depth_first ,
+                          Selection::breadth_first ,
                           Selection::best_estimate , Selection::plunging } ) {
     ParallelBBOptions o;
     o.threads = p;
@@ -1064,6 +1066,7 @@ static void test_bb_mpi( const std::string & )
   const double opt = double( kp.optimum() );
   const std::string tag = " knapsack " + std::to_string( i++ );
   for( Selection sel : { Selection::best_first , Selection::depth_first ,
+                         Selection::breadth_first ,
                          Selection::best_estimate , Selection::plunging } ) {
    ParallelBBOptions o;
    o.selection = sel;

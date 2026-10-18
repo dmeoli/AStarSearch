@@ -15,7 +15,7 @@ found so far (the *incumbent*), or when the gap between the two is within a
 tolerance. Third, the bound of a node is usually "expensive" (e.g., the
 optimal value of a Linear Program), and hence one wants to compute it when
 the node is extracted, the node inheriting the bound of its parent until
-then. Fourth, the order of extraction is a policy (best-first, depth-first,
+then. Fourth, the order of extraction is a policy (best-first, depth-first, breadth-first,
 best-estimate, or a depth-first dive from the best node). Fifth, the
 objective may be maximized, and the bounds are real numbers compared with
 tolerances. The structure of this note is as follows: we first give the
@@ -62,7 +62,7 @@ does not use.
 
 We keep the open nodes in a pool with a free list (a node is
 destroyed when it is branched, while in A* a generated node stays in the
-closed list) and a priority queue of pairs (key, index). Its key depends on the policy: the bound for best-first, minus the depth for depth-first, and
+closed list) and a priority queue of pairs (key, index). Its key depends on the policy: the bound for best-first, minus the depth for depth-first, the depth for breadth-first (the oldest node first among those of the same depth), and
 a problem-given estimate of the best feasible value in the subtree for
 best-estimate. In the dive (*plunging*), the children of the node just
 branched are extracted depth-first as long as their bound is within a

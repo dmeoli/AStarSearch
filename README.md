@@ -126,7 +126,7 @@ hence, there is no closed list. A node is evaluated only when it is
 extracted, which pays off when the bound is "expensive" (say, a Linear
 Program), and it is pruned when it is generated, when it is extracted and
 after its evaluation. Also, the nodes can be extracted best-first,
-depth-first, by an estimate of the problem, or by plunging (a dive into
+depth-first, breadth-first, by an estimate of the problem, or by plunging (a dive into
 the best child, then best-first). The search ends when no open node can
 improve the incumbent beyond an absolute or relative tolerance (usually
 well before the queue is empty); it reports the bound and the gap also

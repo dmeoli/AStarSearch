@@ -221,9 +221,7 @@ class SharedBranchAndBound {
   const unsigned p = f_options.threads;
   const Selection sel = f_options.selection;
   Stopwatch clock;
-  Shared sh( f_options.incumbent ? sgn * *f_options.incumbent : inf ,
-             ( sel == Selection::depth_first ) ||
-             ( sel == Selection::best_estimate ) );
+  Shared sh( f_options.incumbent ? sgn * *f_options.incumbent : inf , sel );
   {
    Node r = f_p.root();
    const double key = detail::bb_key( f_p , r , -inf , 0 , sel );
@@ -261,7 +259,7 @@ class SharedBranchAndBound {
 
  struct Shared {
 
-  Shared( double z , bool track ) : inc( z ) , q( track ) {}
+  Shared( double z , Selection s ) : inc( z ) , q( s ) {}
 
   BBIncumbent< Node > inc;                     // the incumbent
   alignas( cache_line ) Lock lock;              // protects q and max_open
@@ -527,8 +525,7 @@ class DistributedBranchAndBound {
   Worker( const DistributedBranchAndBound & a , Shared & s , unsigned i ,
           const Stopwatch & c )
    : f_a( a ) , f_sh( s ) , f_id( i ) , f_clock( c ) ,
-     f_q( ( a.f_options.selection == Selection::depth_first ) ||
-          ( a.f_options.selection == Selection::best_estimate ) ) ,
+     f_q( a.f_options.selection ) ,
      f_gen( a.f_options.seed + i ) , v_out( s.p ) {}
 
   // the main loop

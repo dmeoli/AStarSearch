@@ -75,6 +75,7 @@ enum class Sense {
 enum class Selection {
  best_first ,     ///< the least bound first
  depth_first ,    ///< the deepest node first
+ breadth_first ,  ///< the shallowest node first, the oldest among those
  best_estimate ,  ///< the least estimate( n ) of the problem first
  plunging         ///< a dive into the children, then best-first
  };
@@ -265,10 +266,11 @@ struct BBSolution {
 /// the open nodes of a B&B, ordered by a key
 /** The nodes are kept in slots with a free list, since a node is destroyed
  * when it is branched, and a binary heap of the pairs ( key , index ) gives
- * the next one: the least key first and, among equal keys, the last
- * pushed. When the key is not the bound (track_bounds), a second heap of
- * the bounds, whose entries of the removed nodes are deleted lazily, gives
- * the least bound of the open nodes, which the termination test needs. */
+ * the next one: the least key first and, among equal keys, the last pushed
+ * (the first pushed with Selection::breadth_first). When the key of the
+ * selection is not the bound, a second heap of the bounds, whose entries of
+ * the removed nodes are deleted lazily, gives the least bound of the open
+ * nodes, which the termination test needs. */
 
 template< class Node >
 class BBQueue {
@@ -285,10 +287,13 @@ class BBQueue {
   };
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
- /// constructor: track_bounds if the key may differ from the bound
+ /// constructor, taking the selection the keys are made by
 
- explicit BBQueue( bool track_bounds = false )
-  : f_track( track_bounds ) {}
+ explicit BBQueue( Selection s = Selection::best_first )
+  : f_track( ( s == Selection::depth_first ) ||
+             ( s == Selection::breadth_first ) ||
+             ( s == Selection::best_estimate ) ) ,
+    f_fifo( s == Selection::breadth_first ) {}
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// adds a node with its bound, its depth and its key
@@ -307,7 +312,7 @@ class BBQueue {
   v_slot[ i ].item.emplace( Item{ std::move( n ) , bound , depth } );
   v_slot[ i ].seq = seq;
   v_heap.push_back( Key{ key , seq , i } );
-  std::push_heap( v_heap.begin() , v_heap.end() , after );
+  std::push_heap( v_heap.begin() , v_heap.end() , order() );
   if( f_track ) {
    v_bounds.push_back( Key{ bound , seq , i } );
    std::push_heap( v_bounds.begin() , v_bounds.end() , after );
@@ -318,7 +323,7 @@ class BBQueue {
  /// removes and returns the next node
 
  Item pop( void ) {
-  std::pop_heap( v_heap.begin() , v_heap.end() , after );
+  std::pop_heap( v_heap.begin() , v_heap.end() , order() );
   const std::size_t i = v_heap.back().idx;
   v_heap.pop_back();
   Item it = std::move( *v_slot[ i ].item );
@@ -391,9 +396,20 @@ class BBQueue {
   return( ( a.key > b.key ) || ( ( a.key == b.key ) && ( a.seq < b.seq ) ) );
   }
 
+ // the same, but with the earlier pushed first for equal keys
+ static bool after_fifo( const Key & a , const Key & b ) noexcept {
+  return( ( a.key > b.key ) || ( ( a.key == b.key ) && ( a.seq > b.seq ) ) );
+  }
+
+ // the order of the heap of the keys
+ [[nodiscard]] auto order( void ) const noexcept {
+  return( f_fifo ? after_fifo : after );
+  }
+
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
  bool f_track;                         ///< true if v_bounds is kept
+ bool f_fifo;                          ///< first in, first out on ties
  std::uint64_t f_seq = 0;              ///< the pushes so far
  std::vector< Slot > v_slot;           ///< the slots
  std::vector< std::size_t > v_free;    ///< the free slots
@@ -465,6 +481,8 @@ double bb_key( const P & p , const typename P::node_type & n , double bound ,
  switch( s ) {
   case( Selection::depth_first ):
    return( - double( depth ) );
+  case( Selection::breadth_first ):
+   return( double( depth ) );
   case( Selection::best_estimate ):
    if constexpr( EstimatingBranchAndBound< P > )
     return( bb_sign< P >() * double( p.estimate( n ) ) );
@@ -584,8 +602,7 @@ class BranchAndBoundSearch {
    };
 
   using Item = typename BBQueue< Node >::Item;
-  BBQueue< Node > q( ( sel == Selection::depth_first ) ||
-                     ( sel == Selection::best_estimate ) );
+  BBQueue< Node > q( sel );
   std::optional< Item > dive;              // the node of the dive, if any
   std::vector< Item > kids;                // the children of a node
   double low = inf;                        // bounds of the pruned nodes

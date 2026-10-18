@@ -201,8 +201,7 @@ class MPIBranchAndBoundSearch {
 
   Process( const MPIBranchAndBoundSearch & a , const Stopwatch & c )
    : f_a( a ) , f_comm( a.f_comm ) , f_clock( c ) ,
-     f_q( ( a.f_options.selection == Selection::depth_first ) ||
-          ( a.f_options.selection == Selection::best_estimate ) ) {
+     f_q( a.f_options.selection ) {
    MPI_Comm_rank( f_comm , & f_rank );
    int np;
    MPI_Comm_size( f_comm , & np );

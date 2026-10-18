@@ -173,8 +173,7 @@ class FarmBranchAndBound {
 
   Master( const FarmBranchAndBound & a , Shared & s )
    : f_a( a ) , f_sh( s ) ,
-     f_q( ( a.f_options.selection == Selection::depth_first ) ||
-          ( a.f_options.selection == Selection::best_estimate ) ) {}
+     f_q( a.f_options.selection ) {}
 
   int svc_init( void ) override {
    pin_worker( 0 );
