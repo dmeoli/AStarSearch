@@ -28,6 +28,7 @@ bb-shared-openmp    openmp    the shared queue on OpenMP
 bb-dist-openmp      openmp    the distributed queues on OpenMP
 bb-shared-fastflow  fastflow  the shared queue on FastFlow
 bb-dist-fastflow    fastflow  the distributed queues on FastFlow
+bb-farm-fastflow    fastflow  the master-worker farm, 1 to 8 workers
 
 # the parallel searches on the C++ threads
 hda-thread          -         HDA* with every distribution, 1 to 8 workers

@@ -37,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   new one, and node and time limits; sequential (BranchAndBoundSearch) and
   parallel with a shared queue (SharedBranchAndBound) or with distributed
   queues (DistributedBranchAndBound) on C++ threads, OpenMP and FastFlow,
-  tested on the 0-1 knapsack against the dynamic program; the design is in
+  and master-worker on a farm of FastFlow (FarmBranchAndBound), tested on
+  the 0-1 knapsack against the dynamic program; the design is in
   docs/branch-and-bound.md
 - SearchOptions::expected_nodes, which sizes the closed list at the start
 - the examples after Russell and Norvig, whose results are tests: the

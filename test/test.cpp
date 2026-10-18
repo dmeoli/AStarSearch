@@ -19,7 +19,7 @@
  *     test pase-thread
  *     test bb | bb-shared-thread | bb-dist-thread
  *     test bb-shared-openmp | bb-dist-openmp
- *     test bb-shared-fastflow | bb-dist-fastflow
+ *     test bb-shared-fastflow | bb-dist-fastflow | bb-farm-fastflow
  *     test mpi                      (under mpiexec)
  *     test registry <tests.txt>
  *
@@ -91,6 +91,7 @@
 
 #ifdef ASTAR_HAS_FASTFLOW
  #include "AStarSearch/FarmAStar.h"
+ #include "AStarSearch/FarmBranchAndBound.h"
  #include "AStarSearch/FastFlowRuntime.h"
 #endif
 
@@ -943,7 +944,7 @@ static void test_bb( const std::string & )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // a parallel B&B of the problem q: K = 0 the shared queue, K = 1 the
-// distributed queues
+// distributed queues, K = 2 the farm (the runtime is then FastFlow)
 
 template< int K , class Runtime , class Q >
 static auto bb_parallel( const Q & q , const ParallelBBOptions & o )
@@ -951,7 +952,12 @@ static auto bb_parallel( const Q & q , const ParallelBBOptions & o )
  if constexpr( K == 0 )
   return( SharedBranchAndBound< Q , Runtime >( q , o ).solve() );
  else
-  return( DistributedBranchAndBound< Q , Runtime >( q , o ).solve() );
+  if constexpr( K == 1 )
+   return( DistributedBranchAndBound< Q , Runtime >( q , o ).solve() );
+  #ifdef ASTAR_HAS_FASTFLOW
+  else
+   return( FarmBranchAndBound< Q >( q , o ).solve() );
+  #endif
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -963,7 +969,8 @@ static auto bb_parallel( const Q & q , const ParallelBBOptions & o )
 template< int K , class Runtime >
 static void test_bb_parallel( const std::string & )
 {
- const std::string name = std::string( K == 0 ? "shared" : "distributed" ) +
+ const std::string name = std::string( K == 0 ? "shared" :
+                                       K == 1 ? "distributed" : "farm" ) +
                           " B&B on " + Runtime::name();
  int i = 0;
  for( const Knapsack & kp : knapsacks() ) {
@@ -1043,6 +1050,8 @@ static const std::vector< Case > cases = {
     test_bb_parallel< 0 , FastFlowRuntime > } ,
   { "bb-dist-fastflow" , "fastflow" ,
     test_bb_parallel< 1 , FastFlowRuntime > } ,
+  { "bb-farm-fastflow" , "fastflow" ,
+    test_bb_parallel< 2 , FastFlowRuntime > } ,
  #endif
  #ifdef ASTAR_HAS_MPI
   { "mpi" , "mpi" , test_mpi } ,
