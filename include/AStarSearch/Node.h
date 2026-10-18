@@ -29,9 +29,9 @@
 
 #include <vector>
 
-#include "Domain.h"
+#include "AStarSearch/Domain.h"
 
-#include "SearchUtils.h"
+#include "AStarSearch/SearchUtils.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/

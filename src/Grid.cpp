@@ -26,9 +26,9 @@
 
 #include <string>
 
-#include "Grid.h"
+#include "AStarSearch/Grid.h"
 
-#include "SearchUtils.h"
+#include "AStarSearch/SearchUtils.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/

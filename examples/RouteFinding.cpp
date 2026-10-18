@@ -35,9 +35,9 @@
 
 #include <string>
 
-#include "AStar.h"
+#include "AStarSearch/AStar.h"
 
-#include "ExplicitGraph.h"
+#include "AStarSearch/ExplicitGraph.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/

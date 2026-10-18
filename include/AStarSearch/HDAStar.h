@@ -38,9 +38,9 @@
 
 #include <vector>
 
-#include "AStar.h"
+#include "AStarSearch/AStar.h"
 
-#include "Distribution.h"
+#include "AStarSearch/Distribution.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/

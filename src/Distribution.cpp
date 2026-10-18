@@ -19,7 +19,7 @@
 
 #include <random>
 
-#include "Distribution.h"
+#include "AStarSearch/Distribution.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/

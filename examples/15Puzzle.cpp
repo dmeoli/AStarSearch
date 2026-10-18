@@ -37,15 +37,15 @@
 
 #include <string>
 
-#include "AStar.h"
+#include "AStarSearch/AStar.h"
 
-#include "Distribution.h"
+#include "AStarSearch/Distribution.h"
 
-#include "HDAStar.h"
+#include "AStarSearch/HDAStar.h"
 
-#include "SequenceScore.h"
+#include "AStarSearch/SequenceScore.h"
 
-#include "SlidingTile.h"
+#include "AStarSearch/SlidingTile.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/

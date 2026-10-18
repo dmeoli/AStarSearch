@@ -30,36 +30,36 @@ AStOBJ = $(AStSDR)/obj/Distribution.o \
 
 AStINC = -I$(AStSDR)/include
 
-AStH   = $(AStSDR)/include/AStar.h \
-         $(AStSDR)/include/AStarSearch.h \
-         $(AStSDR)/include/Distribution.h \
-         $(AStSDR)/include/Domain.h \
-         $(AStSDR)/include/ExplicitGraph.h \
-         $(AStSDR)/include/Grid.h \
-         $(AStSDR)/include/HDAStar.h \
-         $(AStSDR)/include/Node.h \
-         $(AStSDR)/include/NodeTable.h \
-         $(AStSDR)/include/OpenList.h \
-         $(AStSDR)/include/PASE.h \
-         $(AStSDR)/include/SPAStar.h \
-         $(AStSDR)/include/SafePBNF.h \
-         $(AStSDR)/include/SearchUtils.h \
-         $(AStSDR)/include/SequenceScore.h \
-         $(AStSDR)/include/SlowDomain.h \
-         $(AStSDR)/include/SlidingTile.h \
-         $(AStSDR)/include/Solution.h
+AStH   = $(AStSDR)/include/AStarSearch/AStar.h \
+         $(AStSDR)/include/AStarSearch/AStarSearch.h \
+         $(AStSDR)/include/AStarSearch/Distribution.h \
+         $(AStSDR)/include/AStarSearch/Domain.h \
+         $(AStSDR)/include/AStarSearch/ExplicitGraph.h \
+         $(AStSDR)/include/AStarSearch/Grid.h \
+         $(AStSDR)/include/AStarSearch/HDAStar.h \
+         $(AStSDR)/include/AStarSearch/Node.h \
+         $(AStSDR)/include/AStarSearch/NodeTable.h \
+         $(AStSDR)/include/AStarSearch/OpenList.h \
+         $(AStSDR)/include/AStarSearch/PASE.h \
+         $(AStSDR)/include/AStarSearch/SPAStar.h \
+         $(AStSDR)/include/AStarSearch/SafePBNF.h \
+         $(AStSDR)/include/AStarSearch/SearchUtils.h \
+         $(AStSDR)/include/AStarSearch/SequenceScore.h \
+         $(AStSDR)/include/AStarSearch/SlowDomain.h \
+         $(AStSDR)/include/AStarSearch/SlidingTile.h \
+         $(AStSDR)/include/AStarSearch/Solution.h
 
 # the headers of the optional runtimes- - - - - - - - - - - - - - - - - - - -
 
-AStOMPH = $(AStSDR)/include/OpenMPRuntime.h
-AStFFH  = $(AStSDR)/include/FastFlowRuntime.h \
-          $(AStSDR)/include/FarmAStar.h
-AStMPIH = $(AStSDR)/include/HDAStarMPI.h
+AStOMPH = $(AStSDR)/include/AStarSearch/OpenMPRuntime.h
+AStFFH  = $(AStSDR)/include/AStarSearch/FastFlowRuntime.h \
+          $(AStSDR)/include/AStarSearch/FarmAStar.h
+AStMPIH = $(AStSDR)/include/AStarSearch/HDAStarMPI.h
 
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 clean::
-	rm -f $(AStOBJ) $(AStSDR)/*~ $(AStSDR)/include/*~ $(AStSDR)/src/*~
+	rm -f $(AStOBJ) $(AStSDR)/*~ $(AStSDR)/include/AStarSearch/*~ $(AStSDR)/src/*~
 
 # dependencies: every .o from its .cpp + every recursively included .h- - - -
 

@@ -150,7 +150,7 @@ target_include_directories(
         ${modName} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-        $<INSTALL_INTERFACE:include/${modNamespace}>)
+        $<INSTALL_INTERFACE:include>)
 target_link_libraries(${modName} PUBLIC Threads::Threads)
 add_library(${modNamespace}::${modName} ALIAS ${modName})
 set(installTargets ${modName})
@@ -214,7 +214,7 @@ install(TARGETS ${installTargets} EXPORT ${modName}Targets)
 
 # Install the headers and the auto-generated configuration header.
 install(DIRECTORY include/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${modNamespace})
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${PROJECT_BINARY_DIR}/${modName}Config.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${modNamespace})
 if (ASTAR_HAS_FASTFLOW)

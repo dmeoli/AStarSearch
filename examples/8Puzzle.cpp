@@ -55,11 +55,11 @@
 
 #include <vector>
 
-#include "AStar.h"
+#include "AStarSearch/AStar.h"
 
-#include "SequenceScore.h"
+#include "AStarSearch/SequenceScore.h"
 
-#include "SlidingTile.h"
+#include "AStarSearch/SlidingTile.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/

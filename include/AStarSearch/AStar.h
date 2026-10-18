@@ -23,17 +23,17 @@
 /*-------------------------------- INCLUDES --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#include "Domain.h"
+#include "AStarSearch/Domain.h"
 
-#include "Node.h"
+#include "AStarSearch/Node.h"
 
-#include "NodeTable.h"
+#include "AStarSearch/NodeTable.h"
 
-#include "OpenList.h"
+#include "AStarSearch/OpenList.h"
 
-#include "SearchUtils.h"
+#include "AStarSearch/SearchUtils.h"
 
-#include "Solution.h"
+#include "AStarSearch/Solution.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/

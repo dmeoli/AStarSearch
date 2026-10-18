@@ -21,7 +21,7 @@
 
 #include <numeric>
 
-#include "Solution.h"
+#include "AStarSearch/Solution.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/

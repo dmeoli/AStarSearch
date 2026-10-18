@@ -28,7 +28,7 @@
 
 #include <vector>
 
-#include "SearchUtils.h"
+#include "AStarSearch/SearchUtils.h"
 
 #if defined( __linux__ )
  #include <pthread.h>

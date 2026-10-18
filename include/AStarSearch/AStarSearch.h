@@ -49,29 +49,29 @@
 /*-------------------------------- INCLUDES --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#include "AStar.h"
+#include "AStarSearch/AStar.h"
 
-#include "Distribution.h"
+#include "AStarSearch/Distribution.h"
 
-#include "Domain.h"
+#include "AStarSearch/Domain.h"
 
-#include "ExplicitGraph.h"
+#include "AStarSearch/ExplicitGraph.h"
 
-#include "Grid.h"
+#include "AStarSearch/Grid.h"
 
-#include "HDAStar.h"
+#include "AStarSearch/HDAStar.h"
 
-#include "PASE.h"
+#include "AStarSearch/PASE.h"
 
-#include "SPAStar.h"
+#include "AStarSearch/SPAStar.h"
 
-#include "SafePBNF.h"
+#include "AStarSearch/SafePBNF.h"
 
-#include "SequenceScore.h"
+#include "AStarSearch/SequenceScore.h"
 
-#include "SlidingTile.h"
+#include "AStarSearch/SlidingTile.h"
 
-#include "SlowDomain.h"
+#include "AStarSearch/SlowDomain.h"
 
 /*--------------------------------------------------------------------------*/
 

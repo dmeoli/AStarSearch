@@ -41,7 +41,7 @@
 
 #include <ff/ubuffer.hpp>
 
-#include "SearchUtils.h"
+#include "AStarSearch/SearchUtils.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/

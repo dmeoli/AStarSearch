@@ -31,8 +31,9 @@ exact, since it reopens a closed node reached through a cheaper path; the
 parallel searches, however, may pay several re-expansions for the same node.
 
 All the algorithms are templates over the problem, which is described by a
-type satisfying the concept `Domain` of `include/Domain.h`. Such a type
-gives `state_type` and an arithmetic `cost_type`, together with the methods
+type satisfying the concept `Domain` of `include/AStarSearch/Domain.h`.
+Such a type gives `state_type` and an arithmetic `cost_type`, together
+with the methods
 `initial_state()`, `is_goal( s )`, `heuristic( s )`, `hash( s )` and
 `for_each_successor( s , h_s , f )`; the latter calls `f( t , c , h_t )` for
 each successor t of s. Note that h(s) is passed in, so that h(t) can be
@@ -175,7 +176,7 @@ sequentially, and then with HDA* and Abstract Zobrist hashing on 8 threads,
 reads
 
 ```cpp
-#include "AStarSearch.h"
+#include "AStarSearch/AStarSearch.h"
 using namespace AStar_di_unipi_it;
 
 int main( void )

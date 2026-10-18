@@ -60,29 +60,29 @@
 
 #include <vector>
 
-#include "AStar.h"
+#include "AStarSearch/AStar.h"
 
-#include "Distribution.h"
+#include "AStarSearch/Distribution.h"
 
-#include "Grid.h"
+#include "AStarSearch/Grid.h"
 
-#include "SlidingTile.h"
+#include "AStarSearch/SlidingTile.h"
 
-#include "SlowDomain.h"
+#include "AStarSearch/SlowDomain.h"
 
 #ifdef ASTAR_BENCH_MPI
- #include "HDAStarMPI.h"
+ #include "AStarSearch/HDAStarMPI.h"
 #else
- #include "HDAStar.h"
- #include "SPAStar.h"
- #include "PASE.h"
- #include "SafePBNF.h"
+ #include "AStarSearch/HDAStar.h"
+ #include "AStarSearch/SPAStar.h"
+ #include "AStarSearch/PASE.h"
+ #include "AStarSearch/SafePBNF.h"
  #ifdef ASTAR_HAS_OPENMP
-  #include "OpenMPRuntime.h"
+  #include "AStarSearch/OpenMPRuntime.h"
  #endif
  #ifdef ASTAR_HAS_FASTFLOW
-  #include "FarmAStar.h"
-  #include "FastFlowRuntime.h"
+  #include "AStarSearch/FarmAStar.h"
+  #include "AStarSearch/FastFlowRuntime.h"
  #endif
 #endif
 

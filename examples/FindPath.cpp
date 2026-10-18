@@ -45,9 +45,9 @@
 
 #include <vector>
 
-#include "AStar.h"
+#include "AStarSearch/AStar.h"
 
-#include "Grid.h"
+#include "AStarSearch/Grid.h"
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- NAMESPACE AND USING ---------------------------*/
