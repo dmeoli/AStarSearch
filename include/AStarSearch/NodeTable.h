@@ -47,18 +47,19 @@ namespace AStar_di_unipi_it
 /*---------------------------- CLASS NodeTable -----------------------------*/
 /*--------------------------------------------------------------------------*/
 /// open addressing hash table of node pointers with linear probing
-/** Every slot keeps the full 64-bit hash next to the pointer, so that a
- * probe compares two states only when their hashes match and a resize never
+/** Every slot keeps the full 64-bit hash next to the pointer, so that a probe
+ * compares two states only when their hashes match and a resize never
  * touches the nodes. Linear probing scans consecutive slots, that is,
  * consecutive cache lines, which is what makes it faster than chaining when
  * the table does not fit in the cache. The slot of a hash is taken from the
  * top bits of its product by 2^64 / phi (Fibonacci hashing), so that hash
  * values whose low bits depend on the owner thread, as with a distribution
  * hash( s ) mod p, still spread over the whole table. The load factor is
- * kept below 7 / 10, and the slots are allocated on huge pages [see
- * HugePageAllocator in SearchUtils.h]. A search can call prefetch( hash )
- * for all the successors of a node before looking them up, so that the
- * cache misses of the lookups overlap. */
+ * kept below 7 / 10, and the slots come from zeroed_allocate(), i.e., on
+ * huge pages and already zeroed by the kernel, so that a table that grows
+ * writes no zeros (an empty slot is all zeros, the null pointer included). A
+ * search can call prefetch( hash ) for all the successors of a node before
+ * looking them up, so that the cache misses of the lookups overlap. */
 
 template< class NodeT >
 class NodeTable {
@@ -77,11 +78,18 @@ class NodeTable {
  /// constructor, taking the initial number of slots
 
  explicit NodeTable( std::size_t capacity = 1024 ) : f_size( 0 ) {
-  v_slots.resize( std::bit_ceil( capacity < 16 ? std::size_t( 16 )
-                                               : capacity ) );
-  f_mask = v_slots.size() - 1;
-  f_shift = 64 - std::countr_zero( v_slots.size() );
+  f_n = std::bit_ceil( capacity < 16 ? std::size_t( 16 ) : capacity );
+  v_slots = slots( f_n );
+  f_mask = f_n - 1;
+  f_shift = 64 - std::countr_zero( f_n );
   }
+
+ /// destructor: frees the slots
+
+ ~NodeTable() { zeroed_deallocate( v_slots , f_n * sizeof( Slot ) ); }
+
+ NodeTable( const NodeTable & ) = delete;
+ NodeTable & operator=( const NodeTable & ) = delete;
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// looks up a state, inserting the node made by make() if it is absent
@@ -101,7 +109,7 @@ class NodeTable {
    }
   NodeT * node = make();
   v_slots[ i ] = { hash , node };
-  if( ++f_size * 10 > v_slots.size() * 7 )
+  if( ++f_size * 10 > f_n * 7 )
    grow();
   return( std::pair( node , true ) );
   }
@@ -139,7 +147,7 @@ class NodeTable {
  /// the memory taken by the slots, in bytes
 
  [[nodiscard]] std::size_t bytes( void ) const noexcept {
-  return( v_slots.size() * sizeof( Slot ) );
+  return( f_n * sizeof( Slot ) );
   }
 
 /*----------------------- PRIVATE PART OF THE CLASS ------------------------*/
@@ -161,14 +169,23 @@ class NodeTable {
   }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
- // doubles the number of slots, moving the old ones
+ // n slots, all empty: zeros that nobody writes [see zeroed_allocate()]
+
+ static Slot * slots( std::size_t n ) {
+  return( static_cast< Slot * >( zeroed_allocate( n * sizeof( Slot ) ) ) );
+  }
+
+ // doubles the number of slots, moving the occupied ones
 
  void grow( void ) {
-  std::vector< Slot , HugePageAllocator< Slot > > old( v_slots.size() * 2 );
-  old.swap( v_slots );
-  f_mask = v_slots.size() - 1;
+  Slot * old = v_slots;
+  const std::size_t n = f_n;
+  f_n *= 2;
+  v_slots = slots( f_n );
+  f_mask = f_n - 1;
   --f_shift;
-  for( const Slot & s : old ) {
+  for( std::size_t k = 0 ; k < n ; ++k ) {
+   const Slot & s = old[ k ];
    if( ! s.node )
     continue;
    std::size_t i = index( s.hash );
@@ -176,11 +193,13 @@ class NodeTable {
     i = ( i + 1 ) & f_mask;
    v_slots[ i ] = s;
    }
+  zeroed_deallocate( old , n * sizeof( Slot ) );
   }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
- std::vector< Slot , HugePageAllocator< Slot > > v_slots;   ///< the slots
+ Slot * v_slots;                             ///< the slots, zeroed
+ std::size_t f_n;                            ///< the number of slots
  std::size_t f_mask;                         ///< the number of slots - 1
  int f_shift;                      ///< 64 - log2 of the number of slots
  std::size_t f_size;                         ///< the number of nodes

@@ -139,6 +139,19 @@ void pin_worker( unsigned i ) noexcept;
 void huge_deallocate( void * p ) noexcept;
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/// a block of bytes of zeros, on huge pages if it is of at least 2 MB
+/** On Linux the blocks of at least 2 MB come from an anonymous mmap(),
+ * aligned to 2 MB and handed to madvise( MADV_HUGEPAGE ): the kernel gives
+ * their pages already zeroed at the first access, so that nobody writes the
+ * zeros; the smaller ones, and every block elsewhere, come from
+ * std::calloc. Throws std::bad_alloc if there is no memory. */
+
+[[nodiscard]] void * zeroed_allocate( std::size_t bytes );
+
+/// frees a block of the given size returned by zeroed_allocate()
+void zeroed_deallocate( void * p , std::size_t bytes ) noexcept;
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 /// hints the processor to bring the cache line of p in, for reading
 
 inline void prefetch( const void * p ) noexcept

@@ -20,6 +20,8 @@
 /*-------------------------------- INCLUDES --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+#include <cstdint>
+
 #include <cstdlib>
 
 #include <new>
@@ -132,6 +134,50 @@ void * AStar_di_unipi_it::huge_allocate( std::size_t bytes )
 
 void AStar_di_unipi_it::huge_deallocate( void * p ) noexcept
 {
+ std::free( p );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+void * AStar_di_unipi_it::zeroed_allocate( std::size_t bytes )
+{
+ #if defined( __linux__ )
+  if( bytes >= c_huge ) {
+   // c_huge more than needed, so that an aligned block is inside
+   const std::size_t r = ( bytes + c_huge - 1 ) / c_huge * c_huge;
+   void * m = mmap( nullptr , r + c_huge , PROT_READ | PROT_WRITE ,
+                    MAP_PRIVATE | MAP_ANONYMOUS , -1 , 0 );
+   if( m == MAP_FAILED )
+    throw( std::bad_alloc() );
+   const auto a = reinterpret_cast< std::uintptr_t >( m );
+   const std::uintptr_t b = ( a + c_huge - 1 ) / c_huge * c_huge;
+   if( b > a )                                   // the unaligned head
+    munmap( m , b - a );
+   if( b + r < a + r + c_huge )                  // the tail
+    munmap( reinterpret_cast< void * >( b + r ) , a + c_huge - b );
+   void * p = reinterpret_cast< void * >( b );
+   madvise( p , r , MADV_HUGEPAGE );
+   return( p );
+   }
+ #endif
+ if( void * p = std::calloc( bytes ? bytes : 1 , 1 ) )
+  return( p );
+ throw( std::bad_alloc() );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+void AStar_di_unipi_it::zeroed_deallocate( void * p , std::size_t bytes )
+ noexcept
+{
+ #if defined( __linux__ )
+  if( bytes >= c_huge ) {
+   munmap( p , ( bytes + c_huge - 1 ) / c_huge * c_huge );
+   return;
+   }
+ #else
+  ( void ) bytes;
+ #endif
  std::free( p );
  }
 
