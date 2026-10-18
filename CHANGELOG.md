@@ -41,6 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   MPI process per worker (MPIBranchAndBoundSearch), tested on
   the 0-1 knapsack against the dynamic program; the design is in
   docs/branch-and-bound.md
+- the reoptimization of a branch-and-bound: with BBOptions::keep_frontier
+  the Solution holds the leaves of the tree explored (pruned, feasible,
+  infeasible, or left open by a limit), and solve( seeds ) starts any of
+  the searches from a given set of nodes instead of the root; over MPI each
+  process keeps its own leaves and starts from its own seeds
 - SearchOptions::expected_nodes, which sizes the closed list at the start
 - the examples after Russell and Norvig, whose results are tests: the
   8-puzzle (with the heuristics h1, h2 and that of Nilsson), the 15-puzzle,

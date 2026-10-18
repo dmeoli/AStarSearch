@@ -94,16 +94,34 @@ class FarmBranchAndBound {
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/
- /// searches the tree, returning the Solution
+ /// searches the tree from the root, returning the Solution
 
- [[nodiscard]] SolutionT solve( void ) const
+ [[nodiscard]] SolutionT solve( void ) const {
+  return( run( std::nullopt ) );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// searches the subtrees of the given nodes, returning the Solution [see
+ /// BranchAndBoundSearch::solve()]
+
+ [[nodiscard]] SolutionT solve( std::vector< BBLeaf< Node > > seeds ) const {
+  return( run( std::move( seeds ) ) );
+  }
+
+/*----------------------- PRIVATE PART OF THE CLASS ------------------------*/
+
+ private:
+
+ using Item = typename BBQueue< Node >::Item;
+
+ SolutionT run( std::optional< std::vector< BBLeaf< Node > > > seeds ) const
  {
   constexpr double sgn = detail::bb_sign< P >();
   constexpr double inf = std::numeric_limits< double >::infinity();
   Stopwatch clock;
   Shared sh( f_options.incumbent ? sgn * *f_options.incumbent : inf ,
              clock );
-  Master master( *this , sh );
+  Master master( *this , sh , detail::bb_starts( f_p , std::move( seeds ) ) );
   std::vector< std::unique_ptr< ff::ff_node > > workers;
   std::vector< Worker * > w;
   for( unsigned i = 0 ; i < f_options.threads ; ++i ) {
@@ -125,25 +143,20 @@ class FarmBranchAndBound {
                               "failed" ) );
 
   SolutionT sol;
-  double low = std::min( master.f_low , master.f_q.best_bound() );
+  detail::BBFrontier< Node > & fr = master.f_fr;    // left open by a limit
+  fr.add( master.f_q , BBLeafKind::open );
   for( Worker * x : w ) {
    sol.stats.add( x->f_st );
-   low = std::min( low , x->f_low );
+   fr.merge( std::move( x->f_fr ) );
    }
   sol.stats.pruned_extracted += master.f_st.pruned_extracted;
   sol.stats.max_open = master.f_st.max_open;
   sol.stats.messages = master.f_st.messages;
-  detail::bb_finish< P >( sol , sh.inc , low , sh.limit.load() ,
+  detail::bb_finish< P >( sol , sh.inc , fr , sh.limit.load() ,
                           sh.time.load() );
   sol.stats.seconds = clock.seconds();
   return( sol );
   }
-
-/*----------------------- PRIVATE PART OF THE CLASS ------------------------*/
-
- private:
-
- using Item = typename BBQueue< Node >::Item;
 
  // a task: the nodes to evaluate, and then the children that survive
  struct Task {
@@ -171,9 +184,10 @@ class FarmBranchAndBound {
 
  struct Master : ff::ff_monode_t< Task > {
 
-  Master( const FarmBranchAndBound & a , Shared & s )
-   : f_a( a ) , f_sh( s ) ,
-     f_q( a.f_options.selection ) {}
+  Master( const FarmBranchAndBound & a , Shared & s ,
+          std::vector< BBLeaf< Node > > && starts )
+   : f_a( a ) , f_sh( s ) , f_q( a.f_options.selection ) ,
+     f_fr( a.f_options.keep_frontier ) , v_starts( std::move( starts ) ) {}
 
   int svc_init( void ) override {
    pin_worker( 0 );
@@ -181,9 +195,11 @@ class FarmBranchAndBound {
    }
 
   Task * svc( Task * t ) override {
-   if( ! t )                                     // the start: the root
-    push( Item{ f_a.f_p.root() , - std::numeric_limits< double >::infinity() ,
-                0 } );
+   if( ! t ) {                                   // the start
+    for( auto & l : v_starts )
+     push( Item{ std::move( l.node ) , l.bound , l.depth } );
+    v_starts.clear();
+    }
    else {                                        // children back
     --f_out;
     for( Item & it : t->kids )
@@ -230,9 +246,8 @@ class FarmBranchAndBound {
           ! f_q.empty() ) {
     const double best = f_q.best_bound();
     if( detail::bb_prunable( best , f_sh.inc.value() , f_a.f_options ) ) {
-     f_st.pruned_extracted += f_q.clear();      // nothing can improve
-     f_low = std::min( f_low , best );
-     return;
+     f_st.pruned_extracted += f_fr.add( f_q , BBLeafKind::pruned );
+     return;                                    // nothing can improve
      }
     Task * t;
     if( v_free.empty() )
@@ -257,7 +272,8 @@ class FarmBranchAndBound {
   std::vector< Task * > v_free;                 // tasks to reuse
   unsigned f_out = 0;                           // tasks at the workers
   BBStats f_st;                                 // its counters
-  double f_low = std::numeric_limits< double >::infinity();  // pruned
+  detail::BBFrontier< Node > f_fr;              // its leaves
+  std::vector< BBLeaf< Node > > v_starts;       // the nodes to start from
   };
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -266,7 +282,8 @@ class FarmBranchAndBound {
  struct Worker : ff::ff_node_t< Task > {
 
   Worker( const FarmBranchAndBound & a , Shared & s , unsigned i )
-   : f_a( a ) , f_sh( s ) , f_id( i ) {}
+   : f_a( a ) , f_sh( s ) , f_id( i ) ,
+     f_fr( a.f_options.keep_frontier ) {}
 
   int svc_init( void ) override {
    pin_worker( f_id + 1 );
@@ -290,7 +307,7 @@ class FarmBranchAndBound {
                                                unsigned d ) {
                                v_kids.push_back( Item{ std::move( c ) , b ,
                                                        d } );
-                               } , o , f_st , f_low );
+                               } , o , f_st , f_fr );
      f_sh.evaluated.fetch_add( 1 );
      it.reset();
      const std::size_t k = detail::bb_dive( v_kids , t->best , inc() , o );
@@ -319,7 +336,7 @@ class FarmBranchAndBound {
   std::optional< Evaluator > f_w;               // its evaluator
   std::vector< Item > v_kids;                   // the children of a node
   BBStats f_st;                                 // its counters
-  double f_low = std::numeric_limits< double >::infinity();  // pruned
+  detail::BBFrontier< Node > f_fr;              // its leaves
   };
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/

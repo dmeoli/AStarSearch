@@ -143,7 +143,10 @@ typename P::node_type bb_get_node( const P & p , const char * & in )
  *
  * MPI must be initialized by the caller, with at least MPI_THREAD_FUNNELED
  * if the problem uses threads; all the processes of the communicator call
- * solve(), and all of them get the same Solution. */
+ * solve(), and all of them get the same Solution, but for the frontier
+ * [see BBSolution], each process keeping the leaves that it owns. Started
+ * from given nodes, each process starts from its own ones, and these
+ * leaves can be given back to the same process for a later search. */
 
 template< MPIBranchAndBound P >
 class MPIBranchAndBoundSearch {
@@ -173,22 +176,39 @@ class MPIBranchAndBoundSearch {
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/
- /// searches the tree, returning the Solution (on every process)
+ /// searches the tree from the root, returning the Solution (on every
+ /// process)
 
- [[nodiscard]] SolutionT solve( void ) const
- {
-  Stopwatch clock;
-  Process w( *this , clock );
-  w.run();
-  SolutionT sol;
-  w.gather( sol );
-  sol.stats.seconds = clock.seconds();
-  return( sol );
+ [[nodiscard]] SolutionT solve( void ) const {
+  int rank;
+  MPI_Comm_rank( f_comm , & rank );
+  if( rank == 0 )
+   return( run( std::nullopt ) );
+  return( run( std::vector< BBLeaf< Node > >() ) );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// searches the subtrees of the given nodes of this process, returning
+ /// the Solution (on every process) [see BranchAndBoundSearch::solve()]
+
+ [[nodiscard]] SolutionT solve( std::vector< BBLeaf< Node > > seeds ) const {
+  return( run( std::move( seeds ) ) );
   }
 
 /*----------------------- PRIVATE PART OF THE CLASS ------------------------*/
 
  private:
+
+ SolutionT run( std::optional< std::vector< BBLeaf< Node > > > seeds ) const
+ {
+  Stopwatch clock;
+  Process w( *this , clock );
+  w.run( detail::bb_starts( f_p , std::move( seeds ) ) );
+  SolutionT sol;
+  w.gather( sol );
+  sol.stats.seconds = clock.seconds();
+  return( sol );
+  }
 
  using Item = typename BBQueue< Node >::Item;
 
@@ -201,7 +221,7 @@ class MPIBranchAndBoundSearch {
 
   Process( const MPIBranchAndBoundSearch & a , const Stopwatch & c )
    : f_a( a ) , f_comm( a.f_comm ) , f_clock( c ) ,
-     f_q( a.f_options.selection ) {
+     f_q( a.f_options.selection ) , f_fr( a.f_options.keep_frontier ) {
    MPI_Comm_rank( f_comm , & f_rank );
    int np;
    MPI_Comm_size( f_comm , & np );
@@ -216,8 +236,8 @@ class MPIBranchAndBoundSearch {
    f_limit = lim ? ( lim + f_np - 1 ) / f_np : 0;
    }
 
-  // the main loop
-  void run( void ) {
+  // the main loop, from the given nodes
+  void run( std::vector< BBLeaf< Node > > && starts ) {
    auto w = detail::bb_worker( f_a.f_p , unsigned( f_rank ) );
    const BBOptions & o = f_a.f_options;
    constexpr double sgn = detail::bb_sign< P >();
@@ -235,9 +255,9 @@ class MPIBranchAndBoundSearch {
     return( true );
     };
 
-   if( f_rank == 0 )
-    push( Item{ f_a.f_p.root() , - std::numeric_limits< double >::infinity() ,
-                0 } );
+   for( auto & l : starts )
+    push( Item{ std::move( l.node ) , l.bound , l.depth } );
+   starts.clear();
    long long prev[ 2 ] = { -1 , -1 } , mine[ 2 ] , tot[ 2 ];
    MPI_Request wave = MPI_REQUEST_NULL;
    unsigned since_flush = 0;
@@ -251,7 +271,7 @@ class MPIBranchAndBoundSearch {
                                                unsigned d ) {
                                v_kids.push_back( Item{ std::move( c ) , b ,
                                                        d } );
-                               } , o , f_st , f_low );
+                               } , o , f_st , f_fr );
      const std::size_t k = detail::bb_dive( v_kids , f_q.best_bound() ,
                                             f_inc , o );
      for( std::size_t j = 0 ; j < v_kids.size() ; ++j )
@@ -320,8 +340,7 @@ class MPIBranchAndBoundSearch {
    const double best = f_q.best_bound();
    if( ! detail::bb_prunable( best , f_inc , f_a.f_options ) )
     return( false );
-   f_st.pruned_extracted += f_q.clear();
-   f_low = std::min( f_low , best );
+   f_st.pruned_extracted += f_fr.add( f_q , BBLeafKind::pruned );
    return( true );
    }
 
@@ -483,9 +502,14 @@ class MPIBranchAndBoundSearch {
    MPI_Allreduce( flags , any , 2 , MPI_INT , MPI_MAX , f_comm );
 
    // the bound: the nodes pruned by the tolerance and those left open
-   double low = std::min( { f_low , f_q.best_bound() ,
-                            f_dive ? f_dive->bound : inf } ) , glow;
-   MPI_Allreduce( & low , & glow , 1 , MPI_DOUBLE , MPI_MIN , f_comm );
+   f_fr.add( f_q , BBLeafKind::open );
+   if( f_dive ) {
+    f_fr.add( std::move( f_dive->node ) , f_dive->bound , f_dive->depth ,
+              BBLeafKind::open );
+    f_dive.reset();
+    }
+   double glow;
+   MPI_Allreduce( & f_fr.low , & glow , 1 , MPI_DOUBLE , MPI_MIN , f_comm );
 
    // the incumbent and the process holding its node
    struct { double v; int r; } best{ f_node ? f_node_value : inf ,
@@ -516,6 +540,7 @@ class MPIBranchAndBoundSearch {
    const double lb = std::min( z , glow );
    sol.bound = sgn * lb;
    sol.gap = std::isfinite( z ) ? z - lb : inf;
+   f_fr.take( sol.frontier , sgn );
    }
 
   const MPIBranchAndBoundSearch & f_a;          // the search
@@ -541,7 +566,7 @@ class MPIBranchAndBoundSearch {
   bool f_limit_hit = false;                     // a limit was reached here
   bool f_time_hit = false;                      // ... the time limit
   BBStats f_st;                                 // the counters
-  double f_low = std::numeric_limits< double >::infinity();  // pruned
+  detail::BBFrontier< Node > f_fr;              // the leaves owned here
   };
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/

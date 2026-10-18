@@ -96,6 +96,28 @@ struct Evaluation {
                                     ///< solution, if there is one
  };
 
+/// why a node is a leaf of the tree explored
+enum class BBLeafKind {
+ open ,         ///< left open by a limit
+ pruned ,       ///< its bound cannot improve the incumbent
+ feasible ,     ///< evaluated with a feasible value, and not branched
+ infeasible     ///< found infeasible
+ };
+
+/// a leaf of the tree explored, or a node to start a search from
+/** The bound is in the sense of the problem: -infinity (+infinity for a
+ * maximization) if none is known, +infinity (-infinity) for an infeasible
+ * leaf. A pruned or open leaf may not have been evaluated, its bound being
+ * then that of its parent or its estimate. */
+
+template< class Node >
+struct BBLeaf {
+ Node node;                                ///< the node
+ double bound;                             ///< its bound
+ unsigned depth = 0;                       ///< its depth in the tree
+ BBLeafKind kind = BBLeafKind::open;       ///< why it is a leaf
+ };
+
 namespace detail {
  /// a callable accepting a child and its estimate, used only to state the
  /// concepts
@@ -173,7 +195,9 @@ concept EstimatingBranchAndBound = BranchAndBound< P > &&
  * when no open node can. With Selection::plunging, the best child of the
  * node just branched is extracted next (a dive) if its bound is within
  * best + plunge_gap ( z - best ), best being the least open bound, and
- * always while there is no incumbent. */
+ * always while there is no incumbent. With keep_frontier, the Solution
+ * holds the leaves of the tree explored [see BBSolution], from which a
+ * later search can start again [see BranchAndBoundSearch::solve()]. */
 
 struct BBOptions {
 
@@ -184,6 +208,7 @@ struct BBOptions {
  std::optional< double > incumbent;  ///< a known feasible value, if any
  std::size_t node_limit = 0;   ///< evaluated nodes (0 = no limit)
  double time_limit = 0;        ///< seconds (0 = no limit)
+ bool keep_frontier = false;   ///< keep the leaves of the tree explored
  /// called with every new incumbent value (in a parallel search, by the
  /// worker that finds it, under a lock)
  std::function< void( double ) > on_incumbent;
@@ -241,7 +266,14 @@ struct BBStats {
 /** value is the incumbent value and bound a bound on the optimum, both in
  * the sense of the problem, and gap = | value - bound | is valid whatever
  * the status; node is the incumbent node, empty if no feasible node was
- * found (even when an initial incumbent value was given). */
+ * found (even when an initial incumbent value was given).
+ *
+ * With BBOptions::keep_frontier, frontier holds the leaves of the tree
+ * explored, in no particular order: the nodes pruned, feasible or
+ * infeasible, and those left open by a limit. Their subtrees cover the
+ * subtrees of the nodes the search started from, so that a search started
+ * from them [see BranchAndBoundSearch::solve()] explores the same region,
+ * e.g., after a change of the data that leaves the branching valid. */
 
 template< class Node >
 struct BBSolution {
@@ -252,6 +284,7 @@ struct BBSolution {
  double bound = std::numeric_limits< double >::quiet_NaN();  ///< the bound
  double gap = std::numeric_limits< double >::infinity();     ///< the gap
  BBStats stats;                            ///< the counters
+ std::vector< BBLeaf< Node > > frontier;   ///< the leaves, if kept
 
  /// true if a feasible value is known
  [[nodiscard]] bool feasible( void ) const noexcept {
@@ -359,6 +392,17 @@ class BBQueue {
   v_heap.clear();
   v_bounds.clear();
   return( n );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// removes all the nodes, giving each to f( item ), and returns how many
+ /// there were
+
+ template< class F >
+ std::size_t drain( F && f ) {
+  for( const Key & k : v_heap )
+   f( std::move( *v_slot[ k.idx ].item ) );
+  return( clear() );
   }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -472,6 +516,84 @@ inline bool bb_prunable( double bound , double inc , const BBOptions & o )
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/// the leaves of the part of the tree explored by a worker
+/** low is the least bound (in the minimization) of the nodes pruned by the
+ * tolerance or left open, so that min( low , incumbent ) is a bound on the
+ * optimum; the leaves themselves are kept only if keep. */
+
+template< class Node >
+struct BBFrontier {
+
+ explicit BBFrontier( bool k = false ) : keep( k ) {}
+
+ /// adds the leaf n of bound b (in the minimization), lowering low unless
+ /// the subtree of n holds no better solution than its own
+ void add( Node && n , double b , unsigned depth , BBLeafKind kind ,
+           bool lower = true ) {
+  if( lower )
+   low = std::min( low , b );
+  if( keep )
+   leaves.push_back( BBLeaf< Node >{ std::move( n ) , b , depth , kind } );
+  }
+
+ /// adds all the nodes of q as leaves of the given kind, returning their
+ /// number
+ std::size_t add( BBQueue< Node > & q , BBLeafKind kind ) {
+  low = std::min( low , q.best_bound() );
+  if( ! keep )
+   return( q.clear() );
+  return( q.drain( [ & ]( auto && it ) {
+   leaves.push_back( BBLeaf< Node >{ std::move( it.node ) , it.bound ,
+                                     it.depth , kind } );
+   } ) );
+  }
+
+ /// appends the leaves of another worker
+ void merge( BBFrontier && o ) {
+  low = std::min( low , o.low );
+  leaves.insert( leaves.end() , std::make_move_iterator( o.leaves.begin() ) ,
+                 std::make_move_iterator( o.leaves.end() ) );
+  o.leaves.clear();
+  }
+
+ /// moves the leaves, with their bounds in the sense of sign sgn, into v
+ void take( std::vector< BBLeaf< Node > > & v , double sgn ) {
+  for( auto & l : leaves )
+   l.bound *= sgn;
+  v = std::move( leaves );
+  leaves.clear();
+  }
+
+ bool keep;                                     ///< true if leaves is kept
+ double low = std::numeric_limits< double >::infinity();  ///< least bound
+ std::vector< BBLeaf< Node > > leaves;          ///< the leaves
+
+ };  // end( struct( BBFrontier ) )
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/// the nodes a search starts from: the given leaves, with their bounds
+/// turned to the minimization by the sign sgn, or the root if none given
+
+template< BranchAndBound P , class Seeds >
+std::vector< BBLeaf< typename P::node_type > > bb_starts( const P & p ,
+                                                          Seeds && seeds )
+{
+ using Node = typename P::node_type;
+ constexpr double sgn = bb_sign< P >();
+ std::vector< BBLeaf< Node > > v;
+ if( ! seeds )
+  v.push_back( BBLeaf< Node >{ p.root() ,
+                               - std::numeric_limits< double >::infinity() ,
+                               0 , BBLeafKind::open } );
+ else {
+  v = std::move( *seeds );
+  for( auto & l : v )
+   l.bound *= sgn;
+  }
+ return( v );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 /// the key of a child in the queue, by the selection
 
 template< BranchAndBound P >
@@ -498,48 +620,60 @@ double bb_key( const P & p , const typename P::node_type & n , double bound ,
 /// updates the incumbent, prunes it by its bound, and branches it, giving
 /// each child that survives to push( child , bound , depth )
 /** inc is the incumbent value (in the minimization), improve( v , n ) offers
- * the feasible value v of the node n, and low is lowered to the bound of
- * each node pruned by the tolerance, so that min( low , incumbent , open
- * bounds ) is a bound on the optimum. */
+ * the feasible value v of the node n, and the leaves (n itself, or its
+ * children pruned when generated) go to fr [see BBFrontier], n being moved
+ * there if it is one. */
 
 template< BranchAndBound P , class W , class Inc , class Improve ,
           class Push >
 void bb_process( typename P::node_type & n , double bound , unsigned depth ,
                  W & w , Inc && inc , Improve && improve , Push && push ,
-                 const BBOptions & o , BBStats & st , double & low )
+                 const BBOptions & o , BBStats & st ,
+                 BBFrontier< typename P::node_type > & fr )
 {
  using Node = typename P::node_type;
  constexpr double sgn = bb_sign< P >();
+ constexpr double inf = std::numeric_limits< double >::infinity();
  if( bb_prunable( bound , inc() , o ) ) {
   ++st.pruned_extracted;
-  low = std::min( low , bound );
+  fr.add( std::move( n ) , bound , depth , BBLeafKind::pruned );
   return;
   }
  const Evaluation e = w.evaluate( n );
  ++st.evaluated;
  if( e.infeasible ) {
   ++st.infeasible;
+  fr.add( std::move( n ) , inf , depth , BBLeafKind::infeasible , false );
   return;
   }
  const double b = std::max( bound , sgn * e.bound );
  if( e.feasible && improve( sgn * *e.feasible , n ) )
   ++st.incumbents;
+ const BBLeafKind kind = e.feasible ? BBLeafKind::feasible
+                                    : BBLeafKind::pruned;
  if( bb_prunable( b , inc() , o ) ) {
   ++st.pruned_evaluated;
-  low = std::min( low , b );
+  fr.add( std::move( n ) , b , depth , kind );
   return;
   }
  ++st.branched;
+ const std::uint64_t g = st.generated;
  w.branch( std::as_const( n ) , [ & ]( auto && c , double est ) {
   ++st.generated;
   const double cb = std::max( b , sgn * est );
   if( bb_prunable( cb , inc() , o ) ) {
    ++st.pruned_generated;
-   low = std::min( low , cb );
+   if( fr.keep )
+    fr.add( Node( std::forward< decltype( c ) >( c ) ) , cb , depth + 1 ,
+            BBLeafKind::pruned );
+   else
+    fr.low = std::min( fr.low , cb );
    return;
    }
   push( Node( std::forward< decltype( c ) >( c ) ) , cb , depth + 1 );
   } );
+ if( st.generated == g )                // no children: its subtree is n
+  fr.add( std::move( n ) , b , depth , kind , false );
  }
 
 }  // end( namespace detail )
@@ -576,9 +710,31 @@ class BranchAndBoundSearch {
   : f_p( problem ) , f_options( options ) {}
 
 /*-------------------------------- SOLVING ---------------------------------*/
- /// searches the tree, returning the Solution
+ /// searches the tree from the root, returning the Solution
 
- [[nodiscard]] SolutionT solve( void ) const
+ [[nodiscard]] SolutionT solve( void ) const {
+  return( run( std::nullopt ) );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// searches the subtrees of the given nodes, returning the Solution
+ /** The nodes (the kind of a BBLeaf is not looked at) are open nodes with
+  * their bounds and depths, evaluated only when extracted, e.g., the
+  * leaves of a previous search [see BBSolution::frontier] whose bounds are
+  * still valid, or set to the unknown bound where they are not; with none,
+  * the search ends at once. The bound of the Solution is that of their
+  * subtrees, so that the caller combines it with the bounds of whatever
+  * nodes it leaves out. */
+
+ [[nodiscard]] SolutionT solve( std::vector< BBLeaf< Node > > seeds ) const {
+  return( run( std::move( seeds ) ) );
+  }
+
+/*----------------------- PRIVATE PART OF THE CLASS ------------------------*/
+
+ private:
+
+ SolutionT run( std::optional< std::vector< BBLeaf< Node > > > seeds ) const
  {
   constexpr double sgn = detail::bb_sign< P >();
   constexpr double inf = std::numeric_limits< double >::infinity();
@@ -605,7 +761,7 @@ class BranchAndBoundSearch {
   BBQueue< Node > q( sel );
   std::optional< Item > dive;              // the node of the dive, if any
   std::vector< Item > kids;                // the children of a node
-  double low = inf;                        // bounds of the pruned nodes
+  detail::BBFrontier< Node > fr( o.keep_frontier );   // the leaves
 
   const auto push = [ & ]( Item && it ) {
    const double key = detail::bb_key( f_p , it.node , it.bound , it.depth ,
@@ -614,7 +770,8 @@ class BranchAndBoundSearch {
    st.max_open = std::max( st.max_open , q.size() );
    };
 
-  push( Item{ f_p.root() , -inf , 0 } );
+  for( auto & l : detail::bb_starts( f_p , std::move( seeds ) ) )
+   push( Item{ std::move( l.node ) , l.bound , l.depth } );
   sol.status = BBStatus::optimal;
 
   for( ;; ) {
@@ -631,9 +788,13 @@ class BranchAndBoundSearch {
    if( q.empty() && ! dive )
     break;
    if( detail::bb_prunable( best , inc , o ) ) {   // nothing can improve
-    st.pruned_extracted += q.clear() + ( dive ? 1 : 0 );
-    dive.reset();
-    low = std::min( low , best );
+    st.pruned_extracted += fr.add( q , BBLeafKind::pruned );
+    if( dive ) {
+     ++st.pruned_extracted;
+     fr.add( std::move( dive->node ) , dive->bound , dive->depth ,
+             BBLeafKind::pruned );
+     dive.reset();
+     }
     break;
     }
 
@@ -644,7 +805,7 @@ class BranchAndBoundSearch {
                             [ & ] { return( inc ); } , improve ,
                             [ & ]( Node && c , double b , unsigned d ) {
                              kids.push_back( Item{ std::move( c ) , b , d } );
-                             } , o , st , low );
+                             } , o , st , fr );
    if( kids.empty() )
     continue;
 
@@ -668,25 +829,27 @@ class BranchAndBoundSearch {
    }
 
   // the open nodes left by a limit bound the optimum too
-  low = std::min( { low , q.best_bound() , dive ? dive->bound : inf } );
+  fr.add( q , BBLeafKind::open );
+  if( dive )
+   fr.add( std::move( dive->node ) , dive->bound , dive->depth ,
+           BBLeafKind::open );
   if( ( sol.status == BBStatus::optimal ) && ! std::isfinite( inc ) )
    sol.status = BBStatus::infeasible;
   sol.node = std::move( inc_node );
   if( std::isfinite( inc ) )
    sol.value = sgn * inc;
-  const double lb = std::min( inc , low );
+  const double lb = std::min( inc , fr.low );
   sol.bound = sgn * lb;
   sol.gap = std::isfinite( inc ) ? inc - lb : inf;
+  fr.take( sol.frontier , sgn );
   st.evaluated_by = { st.evaluated };
   st.seconds = clock.seconds();
   return( sol );
   }
 
-/*----------------------- PRIVATE PART OF THE CLASS ------------------------*/
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
- private:
-
- const P & f_p;                                       ///< the problem
+ const P & f_p;                                      ///< the problem
  BBOptions f_options;                                 ///< the options
 
  };  // end( class( BranchAndBoundSearch ) )
@@ -701,6 +864,20 @@ template< BranchAndBound P >
                               const P & problem , const BBOptions & o = {} )
 {
  return( BranchAndBoundSearch< P >( problem , o ).solve() );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/// the sequential B&B of the subtrees of the given nodes [see
+/// BranchAndBoundSearch::solve()], with the given options
+
+template< BranchAndBound P >
+[[nodiscard]] BBSolution< typename P::node_type > branch_and_bound(
+                  const P & problem ,
+                  std::vector< BBLeaf< typename P::node_type > > seeds ,
+                  const BBOptions & o = {} )
+{
+ return( BranchAndBoundSearch< P >( problem , o ).solve(
+                                                       std::move( seeds ) ) );
  }
 
 /*--------------------------------------------------------------------------*/

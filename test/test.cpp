@@ -47,6 +47,10 @@
 
 #include <iostream>
 
+#include <limits>
+
+#include <optional>
+
 #include <queue>
 
 #include <random>
@@ -56,6 +60,8 @@
 #include <sstream>
 
 #include <string>
+
+#include <type_traits>
 
 #include <unordered_map>
 
@@ -719,7 +725,11 @@ static void test_mpi( const std::string & data )
 // a 0-1 knapsack, its items sorted by decreasing profit / weight: a node
 // fixes the first k items, its bound is the one of the fractional
 // relaxation of Dantzig, the greedy completion of the node is its feasible
-// value, and it is branched on the item k
+// value, and it is branched on the item k; a node over the capacity is
+// infeasible. The children get the bound of their parent, and the item is
+// taken only if it fits; with explicit_children, they get their own bound,
+// and the item is taken anyway, giving a child that is found infeasible
+// when it is evaluated if it does not fit
 
 struct Knapsack {
 
@@ -735,6 +745,7 @@ struct Knapsack {
  std::vector< long > p;           // the profits
  std::vector< long > w;           // the weights
  long cap = 0;                    // the capacity
+ bool explicit_children = false;  // own bounds, infeasible children
 
  node_type root( void ) const {
   node_type n;
@@ -754,6 +765,11 @@ struct Knapsack {
   }
 
  Evaluation evaluate( node_type & n ) const {
+  Evaluation e;
+  if( n.weight > cap ) {
+   e.infeasible = true;
+   return( e );
+   }
   long r = cap - n.weight;
   double b = double( n.profit );
   std::size_t j = n.k;
@@ -763,7 +779,6 @@ struct Knapsack {
    }
   if( j < p.size() )
    b += double( p[ j ] ) * double( r ) / double( w[ j ] );
-  Evaluation e;
   e.bound = b;
   e.feasible = double( greedy( n ) );
   return( e );
@@ -776,16 +791,24 @@ struct Knapsack {
   // the item k left out first and taken last, so that with ties a depth
   // first search goes on with the item taken, as the greedy order does
   constexpr double none = std::numeric_limits< double >::infinity();
+  const auto bound = [ & ]( node_type & x ) {
+   if( ! explicit_children )
+    return( none );
+   const Evaluation e = evaluate( x );
+   return( e.infeasible ? none : e.bound );
+   };
   node_type c = n;
   ++c.k;
-  const bool fits = n.weight + w[ n.k ] <= cap;
+  const bool fits = explicit_children || ( n.weight + w[ n.k ] <= cap );
   node_type t = c;
-  f( std::move( c ) , none );
+  const double bc = bound( c );
+  f( std::move( c ) , bc );
   if( fits ) {
    t.weight += w[ n.k ];
    t.profit += p[ n.k ];
    t.x[ n.k ] = 1;
-   f( std::move( t ) , none );
+   const double bt = bound( t );
+   f( std::move( t ) , bt );
    }
   }
 
@@ -895,6 +918,8 @@ struct MinKnapsack {
 
  Evaluation evaluate( node_type & n ) const {
   Evaluation e = kp.evaluate( n );
+  if( e.infeasible )
+   return( e );
   e.bound = - e.bound;
   e.feasible = - *e.feasible;
   return( e );
@@ -931,12 +956,151 @@ static std::vector< Knapsack > knapsacks( void )
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the leaves of the B&B on the knapsack kp, solved by solve( q , o , seeds )
+// for the problem q (Knapsack or MinKnapsack), the options o and the nodes
+// to start from (none for the root): the leaves of a search carried out to
+// the end bound the optimum and cover the tree, so that a search started
+// from them solves the knapsack of a smaller capacity, in both senses; a
+// search started from the open leaves of one stopped by a node limit, with
+// its incumbent, ends it; and a search started from no node ends at once.
+// With explicit children, the leaves of the smaller knapsack, the
+// infeasible ones among them, cover the tree of the larger one, which a
+// search started from them solves again. With MPI, each process has its
+// own leaves, which may be none.
+
+using Leaves = std::vector< BBLeaf< Knapsack::node_type > >;
+
+template< class O , class Solve >
+static void check_frontier_of( const Knapsack & kp , O o , Solve && solve ,
+                               const std::string & name , bool local )
+{
+ constexpr double inf = std::numeric_limits< double >::infinity();
+ const double opt = double( kp.optimum() );
+ Knapsack kq = kp;
+ kq.cap = kp.cap * 3 / 4;
+ const double optq = double( kq.optimum() );
+ o.keep_frontier = true;
+
+ const auto s = solve( kp , o , std::optional< Leaves >() );
+ bool ok = ( s.status == BBStatus::optimal ) && ( s.value == opt ) &&
+           ( local || ! s.frontier.empty() );
+ Leaves seeds;
+ for( const auto & l : s.frontier ) {
+  ok = ok && ( l.kind != BBLeafKind::open ) && ( l.bound <= opt + 1e-9 );
+  seeds.push_back( l );
+  seeds.back().bound = inf;            // unknown, in the maximization
+  }
+ check( ok , name + " leaves of the whole tree" );
+ const auto r = solve( kq , o , std::optional< Leaves >( seeds ) );
+ check( ( r.status == BBStatus::optimal ) && ( r.value == optq ) &&
+        r.node && kq.check( *r.node , r.value ) ,
+        name + " from the leaves, a smaller capacity" );
+ if( kp.explicit_children ) {
+  seeds = r.frontier;
+  ok = true;
+  for( auto & x : seeds ) {
+   ok = ok && ( ( x.kind == BBLeafKind::infeasible ) == ( x.bound == - inf ) );
+   x.bound = inf;
+   }
+  const auto b = solve( kp , o , std::optional< Leaves >( seeds ) );
+  check( ok && ( b.status == BBStatus::optimal ) && ( b.value == opt ) &&
+         b.node && kp.check( *b.node , b.value ) ,
+         name + " from the leaves, the capacity back" );
+  }
+
+ const auto m = solve( MinKnapsack{ kp } , o , std::optional< Leaves >() );
+ ok = m.status == BBStatus::optimal;
+ seeds.clear();
+ for( const auto & l : m.frontier ) {
+  ok = ok && ( l.bound >= - opt - 1e-9 );
+  seeds.push_back( l );
+  seeds.back().bound = - inf;          // unknown, in the minimization
+  }
+ const auto mr = solve( MinKnapsack{ kq } , o ,
+                        std::optional< Leaves >( seeds ) );
+ check( ok && ( mr.status == BBStatus::optimal ) && ( mr.value == - optq ) &&
+        mr.node && kq.check( *mr.node , - mr.value ) ,
+        name + " from the leaves, a smaller capacity, minimization" );
+
+ O ol = o;
+ ol.node_limit = 5;
+ const auto l = solve( kp , ol , std::optional< Leaves >() );
+ seeds.clear();
+ for( const auto & x : l.frontier )
+  if( x.kind == BBLeafKind::open )
+   seeds.push_back( x );
+ O oc = o;
+ if( l.feasible() )
+  oc.incumbent = l.value;
+ const auto c = solve( kp , oc , std::optional< Leaves >( seeds ) );
+ check( ( l.status == BBStatus::node_limit ) &&
+        ( local || ! seeds.empty() ) && ( c.status == BBStatus::optimal ) &&
+        ( c.value == opt ) && ( c.gap <= 1e-9 ) ,
+        name + " from the open leaves of a node limit" );
+
+ const auto e = solve( kp , o , std::optional< Leaves >( Leaves() ) );
+ check( ( e.status == BBStatus::infeasible ) && ( e.stats.evaluated == 0 ) &&
+        e.frontier.empty() , name + " from no node" );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the same, with the children of the knapsack getting the bound of their
+// parent and with explicit children, which prunes some of them when they
+// are generated and gives infeasible leaves
+
+template< class O , class Solve >
+static void check_frontier( const Knapsack & kp , const O & o ,
+                            Solve && solve , const std::string & name ,
+                            bool local = false )
+{
+ Knapsack kb = kp;
+ kb.explicit_children = true;
+ check_frontier_of( kp , o , solve , name , local );
+ check_frontier_of( kb , o , solve , name + " explicit children" , local );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// a tree of a root and two children without children, both of bound 0:
+// the first with the feasible value 1, the second with none, so that
+// neither is pruned and both are leaves, and the optimum is 1
+
+struct Fork {
+
+ using node_type = int;
+
+ static constexpr Sense sense = Sense::minimize;
+
+ node_type root( void ) const { return( 0 ); }
+
+ Evaluation evaluate( node_type & n ) const {
+  Evaluation e;
+  if( n == 1 )
+   e.feasible = 1;
+  return( e );
+  }
+
+ template< class F >
+ void branch( const node_type & n , F && f ) const {
+  if( n == 0 ) {
+   f( 1 , 0.0 );
+   f( 2 , 0.0 );
+   }
+  }
+
+ };  // end( struct( Fork ) )
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // the sequential B&B on the knapsack against the dynamic program, with
 // every selection, in both senses, with a relative tolerance, with an
-// initial incumbent and with a node limit
+// initial incumbent and with a node limit, and its leaves
 
 static void test_bb( const std::string & )
 {
+ const auto solve = []( const auto & q , const BBOptions & o ,
+                        std::optional< Leaves > seeds ) {
+  BranchAndBoundSearch< std::decay_t< decltype( q ) > > b( q , o );
+  return( seeds ? b.solve( std::move( *seeds ) ) : b.solve() );
+  };
  int i = 0;
  for( const Knapsack & kp : knapsacks() ) {
   const double opt = double( kp.optimum() );
@@ -956,6 +1120,7 @@ static void test_bb( const std::string & )
    check( ( m.status == BBStatus::optimal ) && ( m.value == - opt ) &&
           m.node && kp.check( *m.node , - m.value ) ,
           "B&B minimization" + t );
+   check_frontier( kp , o , solve , "B&B" + t );
    }
 
   BBOptions o;
@@ -980,6 +1145,19 @@ static void test_bb( const std::string & )
   check( ( l.status == BBStatus::node_limit ) && ( l.bound >= opt - 1e-9 ) &&
          ( l.stats.evaluated == 3 ) , "B&B node limit" + tag );
   }
+
+ BBOptions o;
+ o.keep_frontier = true;
+ const auto f = branch_and_bound( Fork{} , o );
+ std::set< std::pair< int , int > > leaves;
+ for( const auto & x : f.frontier )
+  leaves.insert( { x.node , int( x.kind ) } );
+ check( ( f.status == BBStatus::optimal ) && ( f.value == 1 ) &&
+        ( f.bound == 1 ) &&
+        ( leaves == std::set< std::pair< int , int > >{
+                     { 1 , int( BBLeafKind::feasible ) } ,
+                     { 2 , int( BBLeafKind::pruned ) } } ) ,
+        "B&B leaves without children" );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -987,16 +1165,20 @@ static void test_bb( const std::string & )
 // distributed queues, K = 2 the farm (the runtime is then FastFlow)
 
 template< int K , class Runtime , class Q >
-static auto bb_parallel( const Q & q , const ParallelBBOptions & o )
+static auto bb_parallel( const Q & q , const ParallelBBOptions & o ,
+                         std::optional< Leaves > seeds = std::nullopt )
 {
+ const auto solve = [ & ]( const auto & b ) {
+  return( seeds ? b.solve( std::move( *seeds ) ) : b.solve() );
+  };
  if constexpr( K == 0 )
-  return( SharedBranchAndBound< Q , Runtime >( q , o ).solve() );
+  return( solve( SharedBranchAndBound< Q , Runtime >( q , o ) ) );
  else
   if constexpr( K == 1 )
-   return( DistributedBranchAndBound< Q , Runtime >( q , o ).solve() );
+   return( solve( DistributedBranchAndBound< Q , Runtime >( q , o ) ) );
   #ifdef ASTAR_HAS_FASTFLOW
   else
-   return( FarmBranchAndBound< Q >( q , o ).solve() );
+   return( solve( FarmBranchAndBound< Q >( q , o ) ) );
   #endif
  }
 
@@ -1004,7 +1186,7 @@ static auto bb_parallel( const Q & q , const ParallelBBOptions & o )
 // a parallel B&B on the knapsack against the dynamic program, with 1 to 8
 // workers and every selection, in both senses (the minimization has no
 // hash( n ), and hence random owners), with a relative tolerance and with
-// a node limit
+// a node limit, and its leaves
 
 template< int K , class Runtime >
 static void test_bb_parallel( const std::string & )
@@ -1049,6 +1231,16 @@ static void test_bb_parallel( const std::string & )
   const auto l = bb_parallel< K , Runtime >( kp , o );
   check( ( l.status == BBStatus::node_limit ) && ( l.bound >= opt - 1e-9 ) ,
          name + " node limit" + tag );
+
+  for( Selection sel : { Selection::best_first , Selection::plunging } ) {
+   o = ParallelBBOptions();
+   o.threads = 3;
+   o.selection = sel;
+   check_frontier( kp , o , []( const auto & q , const ParallelBBOptions & x ,
+                                std::optional< Leaves > seeds ) {
+    return( bb_parallel< K , Runtime >( q , x , std::move( seeds ) ) );
+    } , name + tag + " selection " + std::to_string( int( sel ) ) );
+   }
   }
  }
 
@@ -1057,10 +1249,16 @@ static void test_bb_parallel( const std::string & )
 
 // the B&B over MPI on the knapsack against the dynamic program, with every
 // selection, in both senses (the minimization has no hash( n ), and hence
-// random owners), with a relative tolerance and with a node limit
+// random owners), with a relative tolerance and with a node limit, and its
+// leaves
 
 static void test_bb_mpi( const std::string & )
 {
+ const auto solve = []( const auto & q , const ParallelBBOptions & o ,
+                        std::optional< Leaves > seeds ) {
+  MPIBranchAndBoundSearch< std::decay_t< decltype( q ) > > b( q , o );
+  return( seeds ? b.solve( std::move( *seeds ) ) : b.solve() );
+  };
  int i = 0;
  for( const Knapsack & kp : knapsacks() ) {
   const double opt = double( kp.optimum() );
@@ -1095,6 +1293,10 @@ static void test_bb_mpi( const std::string & )
   const auto l = MPIBranchAndBoundSearch< Knapsack >( kp , o ).solve();
   check( ( l.status == BBStatus::node_limit ) && ( l.bound >= opt - 1e-9 ) ,
          "MPI B&B node limit" + tag );
+
+  o = ParallelBBOptions();
+  o.batch = 4;
+  check_frontier( kp , o , solve , "MPI B&B" + tag , true );
   }
  }
 

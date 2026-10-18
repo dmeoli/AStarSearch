@@ -130,7 +130,11 @@ depth-first, breadth-first, by an estimate of the problem, or by plunging (a div
 the best child, then best-first). The search ends when no open node can
 improve the incumbent beyond an absolute or relative tolerance (usually
 well before the queue is empty); it reports the bound and the gap also
-when a node or time limit stops it.
+when a node or time limit stops it. On request, the `Solution` also holds
+the leaves of the tree explored, and a search can start from any set of
+nodes instead of the root, which allows one to reoptimize after a change of
+the data that leaves the branching valid, or to resume a search stopped by
+a limit.
 
 The search is sequential (`branch_and_bound( p , options )`), parallel with
 a queue shared by the workers as in SPA* (`SharedBranchAndBound`) or with a

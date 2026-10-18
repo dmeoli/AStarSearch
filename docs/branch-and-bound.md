@@ -129,6 +129,40 @@ the node of the incumbent stays on the process that found it until the end
 Mattern, as in HDA* over MPI; the node limit is split evenly among the
 processes.
 
+## Reoptimization
+
+When the data of the problem change in a way that leaves the branching
+valid (e.g., a restriction of the feasible region, or a change of the
+objective that the nodes do not store), the tree explored by a previous
+search need not be built again: its leaves cover the subtrees of the nodes
+that the search started from, and a new search can start from them. With
+`keep_frontier` in the options, the `Solution` holds these leaves, each
+with its bound, its depth and the reason why it is a leaf, i.e., pruned by
+its bound, evaluated with a feasible value and not branched, found
+infeasible, or left open by a limit; the overload `solve( seeds )` (and
+`branch_and_bound( p , seeds , options )`) then starts the search from any
+set of such nodes instead of the root, each of them being an open node that
+is evaluated only when it is extracted. Which leaves are given back, and
+with which bounds, is left to the caller, since only the caller knows what
+has changed: after a restriction of the region the bounds of the pruned
+leaves remain valid and the infeasible leaves need not be explored again,
+after an enlargement the infeasible leaves have to be given back with an
+unknown bound, and after a change of the objective all of them have to be
+given back with an unknown bound, unless the old ones can be corrected
+(say, by a bound on the change of the objective over the node). In the same
+way, a search stopped by a limit is resumed by giving back its open leaves
+together with its incumbent. The bound of the `Solution` is that of the
+subtrees of the seeds, and the caller combines it with the bounds of the
+leaves that it leaves out.
+
+In the parallel searches each worker collects its leaves, which are merged
+at the end, and the seeds go to their owners as the children do; over MPI,
+instead, each process keeps the leaves that it owns and starts from its own
+seeds, which avoids sending them across the processes. We remark that in a
+tree where every inner node has two children the leaves are one more than
+the inner nodes, and therefore keeping them may take much more memory than
+the open nodes alone; hence, `keep_frontier` is off by default.
+
 ## The interface for a B&B solver
 
 A B&B solver built on a modeling system would provide a problem whose
@@ -172,4 +206,10 @@ on random instances of the uncorrelated, weakly correlated and strongly
 correlated classes of Pisinger with up to a few hundred items. We run the policies sequentially and the parallel schemes with 1 to 8
 workers, as a maximization (which exercises the change of sense), and with
 both a zero and a positive relative tolerance; in the latter case the value
-found has to be within the tolerance of the optimum.
+found has to be within the tolerance of the optimum. The leaves are checked
+as well, in both senses: those of a search carried out to the end have to
+bound the optimum, and a search started from them has to solve the knapsack
+of three quarters of the capacity (and, when the children that do not fit
+are generated and found infeasible, the original knapsack again from the
+leaves of the smaller one), while a search started from the open leaves of
+one stopped by a node limit, with its incumbent, has to end it.
