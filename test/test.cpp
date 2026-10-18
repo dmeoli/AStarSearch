@@ -1203,7 +1203,7 @@ int main( int argc , char * argv[] )
   std::cerr << "unknown case " << what << std::endl;
   return( 2 );
   }
- const bool mpi = ( c != cases.end() ) &&
+ [[maybe_unused]] const bool mpi = ( c != cases.end() ) &&
                   ( std::string( c->needs ) == "mpi" );
 
  #ifdef ASTAR_HAS_MPI
