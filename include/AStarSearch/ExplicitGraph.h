@@ -17,8 +17,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __ExplicitGraph
- #define __ExplicitGraph
+#ifndef __AStarSearch_ExplicitGraph
+ #define __AStarSearch_ExplicitGraph
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -162,7 +162,7 @@ class ExplicitGraph {
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __ExplicitGraph */
+#endif  /* __AStarSearch_ExplicitGraph */
 
 /*--------------------------------------------------------------------------*/
 /*------------------------ End File ExplicitGraph.h ------------------------*/

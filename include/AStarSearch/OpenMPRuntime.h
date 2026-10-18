@@ -16,8 +16,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __OpenMPRuntime
- #define __OpenMPRuntime
+#ifndef __AStarSearch_OpenMPRuntime
+ #define __AStarSearch_OpenMPRuntime
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -237,7 +237,7 @@ struct OpenMPRuntime {
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __OpenMPRuntime */
+#endif  /* __AStarSearch_OpenMPRuntime */
 
 /*--------------------------------------------------------------------------*/
 /*------------------------ End File OpenMPRuntime.h ------------------------*/

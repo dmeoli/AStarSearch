@@ -23,8 +23,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __BranchAndBound
- #define __BranchAndBound
+#ifndef __AStarSearch_BranchAndBound
+ #define __AStarSearch_BranchAndBound
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -709,7 +709,7 @@ template< BranchAndBound P >
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __BranchAndBound */
+#endif  /* __AStarSearch_BranchAndBound */
 
 /*--------------------------------------------------------------------------*/
 /*----------------------- End File BranchAndBound.h ------------------------*/

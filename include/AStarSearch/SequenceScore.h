@@ -16,8 +16,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __SequenceScore
- #define __SequenceScore
+#ifndef __AStarSearch_SequenceScore
+ #define __AStarSearch_SequenceScore
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -152,7 +152,7 @@ class SequenceScore {
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __SequenceScore */
+#endif  /* __AStarSearch_SequenceScore */
 
 /*--------------------------------------------------------------------------*/
 /*------------------------ End File SequenceScore.h ------------------------*/

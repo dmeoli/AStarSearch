@@ -17,8 +17,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __FastFlowRuntime
- #define __FastFlowRuntime
+#ifndef __AStarSearch_FastFlowRuntime
+ #define __AStarSearch_FastFlowRuntime
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -229,7 +229,7 @@ struct FastFlowRuntime {
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __FastFlowRuntime */
+#endif  /* __AStarSearch_FastFlowRuntime */
 
 /*--------------------------------------------------------------------------*/
 /*----------------------- End File FastFlowRuntime.h -----------------------*/

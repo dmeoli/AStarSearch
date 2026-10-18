@@ -21,8 +21,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __ParallelBranchAndBound
- #define __ParallelBranchAndBound
+#ifndef __AStarSearch_ParallelBranchAndBound
+ #define __AStarSearch_ParallelBranchAndBound
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -712,7 +712,7 @@ class DistributedBranchAndBound {
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __ParallelBranchAndBound */
+#endif  /* __AStarSearch_ParallelBranchAndBound */
 
 /*--------------------------------------------------------------------------*/
 /*------------------- End File ParallelBranchAndBound.h --------------------*/

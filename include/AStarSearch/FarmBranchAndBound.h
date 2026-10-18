@@ -19,8 +19,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __FarmBranchAndBound
- #define __FarmBranchAndBound
+#ifndef __AStarSearch_FarmBranchAndBound
+ #define __AStarSearch_FarmBranchAndBound
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -335,7 +335,7 @@ class FarmBranchAndBound {
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __FarmBranchAndBound */
+#endif  /* __AStarSearch_FarmBranchAndBound */
 
 /*--------------------------------------------------------------------------*/
 /*--------------------- End File FarmBranchAndBound.h ----------------------*/

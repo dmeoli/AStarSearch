@@ -16,8 +16,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __SlidingTile
- #define __SlidingTile
+#ifndef __AStarSearch_SlidingTile
+ #define __AStarSearch_SlidingTile
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -476,7 +476,7 @@ using FifteenPuzzle = SlidingTile< 4 , 4 >;     ///< the 15-puzzle
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __SlidingTile */
+#endif  /* __AStarSearch_SlidingTile */
 
 /*--------------------------------------------------------------------------*/
 /*------------------------- End File SlidingTile.h -------------------------*/

@@ -20,8 +20,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __MPIBranchAndBound
- #define __MPIBranchAndBound
+#ifndef __AStarSearch_MPIBranchAndBound
+ #define __AStarSearch_MPIBranchAndBound
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -558,7 +558,7 @@ class MPIBranchAndBoundSearch {
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __MPIBranchAndBound */
+#endif  /* __AStarSearch_MPIBranchAndBound */
 
 /*--------------------------------------------------------------------------*/
 /*---------------------- End File MPIBranchAndBound.h ----------------------*/

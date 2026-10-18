@@ -35,8 +35,8 @@
 /*------------------------------ DEFINITIONS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#ifndef __Distribution
- #define __Distribution
+#ifndef __AStarSearch_Distribution
+ #define __AStarSearch_Distribution
                       /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
@@ -321,7 +321,7 @@ class RandomDistribution {
 
 /*--------------------------------------------------------------------------*/
 
-#endif  /* __Distribution */
+#endif  /* __AStarSearch_Distribution */
 
 /*--------------------------------------------------------------------------*/
 /*------------------------ End File Distribution.h -------------------------*/
