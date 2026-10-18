@@ -111,6 +111,37 @@ FastFlow single-producer single-consumer queues. Their options are in
 expansions between two flushes of a partially filled batch and the seed of
 the distribution.
 
+## Branch-and-bound
+
+The same machinery runs a best-first search with an incumbent, i.e., a
+Branch-and-Bound (B&B), on a problem satisfying the concept
+`BranchAndBound` of `BranchAndBound.h`. Such a problem gives a copyable
+`node_type`, a `sense` (minimization or maximization), the root node, and
+two methods: `evaluate( n )` returns the bound of the node n, whether it is
+infeasible and possibly a feasible value, while `branch( n , sink )` gives
+the children of n, each with a bound that is cheap to compute.
+Alternatively, `make_worker( i )` gives each worker an evaluator of its
+own (e.g., with a copy of a model and of a solver). Note that a B&B tree has no duplicates;
+hence, there is no closed list. A node is evaluated only when it is
+extracted, which pays off when the bound is "expensive" (say, a Linear
+Program), and it is pruned when it is generated, when it is extracted and
+after its evaluation. Also, the nodes can be extracted best-first,
+depth-first, by an estimate of the problem, or by plunging (a dive into
+the best child, then best-first). The search ends when no open node can
+improve the incumbent beyond an absolute or relative tolerance (usually
+well before the queue is empty); it reports the bound and the gap also
+when a node or time limit stops it.
+
+The search is sequential (`branch_and_bound( p , options )`), parallel
+with a queue shared by the workers as in SPA* (`SharedBranchAndBound`) or
+with a queue per worker and the children sent to their owners as in HDA*
+(`DistributedBranchAndBound`), both on the three runtimes, or master-worker
+on a FastFlow farm (`FarmBranchAndBound`). SafePBNF and PA*SE have no
+counterpart, since they exist to handle duplicates and re-expansions,
+which a tree does not have. Its design is discussed in
+[docs/branch-and-bound.md](docs/branch-and-bound.md), and the tests check
+the variants on the 0-1 knapsack against the dynamic program.
+
 ## The data structures
 
 OPEN is either a 4-ary heap, for any cost type, or a two-level bucket queue
