@@ -14,26 +14,35 @@
 # --------------------------------------------------------------------------- #
 
 # the sequential A*
-astar          -         both OPEN lists on the 8-puzzle and the 15-puzzle
-grid           -         random grids with 4 and 8 moves, against Dijkstra
-graph          -         the map of Romania of Russell and Norvig
-limits         -         the node limit and the unsolvable instances
-reopen         -         an inconsistent heuristic that forces a reopening
+astar               -         both OPEN lists on the 8-puzzle and the 15-puzzle
+grid                -         random grids with 4 and 8 moves, against Dijkstra
+graph               -         the map of Romania of Russell and Norvig
+limits              -         the node limit and the unsolvable instances
+reopen              -         an inconsistent heuristic that forces a reopening
+
+# the best-first search with an incumbent (branch-and-bound)
+bb                  -         the 0-1 knapsack against the dynamic program
+bb-shared-thread    -         the shared queue, 1 to 8 workers
+bb-dist-thread      -         the distributed queues, 1 to 8 workers
+bb-shared-openmp    openmp    the shared queue on OpenMP
+bb-dist-openmp      openmp    the distributed queues on OpenMP
+bb-shared-fastflow  fastflow  the shared queue on FastFlow
+bb-dist-fastflow    fastflow  the distributed queues on FastFlow
 
 # the parallel searches on the C++ threads
-hda-thread     -         HDA* with every distribution, 1 to 8 workers
-spa-thread     -         SPA*, 1 to 8 workers
-pbnf-thread    -         SafePBNF, 1 to 8 workers
-pase-thread    -         PA*SE, 1 to 8 workers, each state expanded once
+hda-thread          -         HDA* with every distribution, 1 to 8 workers
+spa-thread          -         SPA*, 1 to 8 workers
+pbnf-thread         -         SafePBNF, 1 to 8 workers
+pase-thread         -         PA*SE, 1 to 8 workers, each state expanded once
 
 # the parallel searches on OpenMP
-hda-openmp     openmp    HDA* with every distribution, 1 to 8 workers
-spa-openmp     openmp    SPA*, 1 to 8 workers
-pbnf-openmp    openmp    SafePBNF, 1 to 8 workers
+hda-openmp          openmp    HDA* with every distribution, 1 to 8 workers
+spa-openmp          openmp    SPA*, 1 to 8 workers
+pbnf-openmp         openmp    SafePBNF, 1 to 8 workers
 
 # the parallel searches on FastFlow
-hda-fastflow   fastflow  HDA* with every distribution, 1 to 8 workers
-farm-fastflow  fastflow  the master-worker farm, 1 to 8 workers
+hda-fastflow        fastflow  HDA* with every distribution, 1 to 8 workers
+farm-fastflow       fastflow  the master-worker farm, 1 to 8 workers
 
 # the distributed search
-mpi            mpi       HDA* over MPI with every deterministic distribution
+mpi                 mpi       HDA* over MPI, every deterministic distribution

@@ -32,6 +32,7 @@ AStINC = -I$(AStSDR)/include
 
 AStH   = $(AStSDR)/include/AStarSearch/AStar.h \
          $(AStSDR)/include/AStarSearch/AStarSearch.h \
+         $(AStSDR)/include/AStarSearch/BranchAndBound.h \
          $(AStSDR)/include/AStarSearch/Distribution.h \
          $(AStSDR)/include/AStarSearch/Domain.h \
          $(AStSDR)/include/AStarSearch/ExplicitGraph.h \
@@ -41,6 +42,7 @@ AStH   = $(AStSDR)/include/AStarSearch/AStar.h \
          $(AStSDR)/include/AStarSearch/NodeTable.h \
          $(AStSDR)/include/AStarSearch/OpenList.h \
          $(AStSDR)/include/AStarSearch/PASE.h \
+         $(AStSDR)/include/AStarSearch/ParallelBranchAndBound.h \
          $(AStSDR)/include/AStarSearch/SPAStar.h \
          $(AStSDR)/include/AStarSearch/SafePBNF.h \
          $(AStSDR)/include/AStarSearch/SearchUtils.h \

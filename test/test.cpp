@@ -17,6 +17,9 @@
  *     test spa-thread | spa-openmp
  *     test pbnf-thread | pbnf-openmp
  *     test pase-thread
+ *     test bb | bb-shared-thread | bb-dist-thread
+ *     test bb-shared-openmp | bb-dist-openmp
+ *     test bb-shared-fastflow | bb-dist-fastflow
  *     test mpi                      (under mpiexec)
  *     test registry <tests.txt>
  *
@@ -44,6 +47,8 @@
 
 #include <queue>
 
+#include <random>
+
 #include <set>
 
 #include <sstream>
@@ -57,6 +62,10 @@
 #include "AStarSearchConfig.h"
 
 #include "AStarSearch/AStar.h"
+
+#include "AStarSearch/BranchAndBound.h"
+
+#include "AStarSearch/ParallelBranchAndBound.h"
 
 #include "AStarSearch/Distribution.h"
 
@@ -703,6 +712,299 @@ static void test_mpi( const std::string & data )
 
 #endif
 
+// a 0-1 knapsack, its items sorted by decreasing profit / weight: a node
+// fixes the first k items, its bound is the one of the fractional
+// relaxation of Dantzig, the greedy completion of the node is its feasible
+// value, and it is branched on the item k
+
+struct Knapsack {
+
+ struct node_type {
+  std::size_t k = 0;              // the items fixed
+  long weight = 0;                // the weight of those taken
+  long profit = 0;                // their profit
+  std::vector< char > x;          // the items taken
+  };
+
+ static constexpr Sense sense = Sense::maximize;
+
+ std::vector< long > p;           // the profits
+ std::vector< long > w;           // the weights
+ long cap = 0;                    // the capacity
+
+ node_type root( void ) const {
+  node_type n;
+  n.x.assign( p.size() , 0 );
+  return( n );
+  }
+
+ // the value of the greedy completion of n
+ long greedy( const node_type & n ) const {
+  long r = cap - n.weight , v = n.profit;
+  for( std::size_t i = n.k ; i < p.size() ; ++i )
+   if( w[ i ] <= r ) {
+    r -= w[ i ];
+    v += p[ i ];
+    }
+  return( v );
+  }
+
+ Evaluation evaluate( node_type & n ) const {
+  long r = cap - n.weight;
+  double b = double( n.profit );
+  std::size_t j = n.k;
+  for( ; ( j < p.size() ) && ( w[ j ] <= r ) ; ++j ) {
+   r -= w[ j ];
+   b += double( p[ j ] );
+   }
+  if( j < p.size() )
+   b += double( p[ j ] ) * double( r ) / double( w[ j ] );
+  Evaluation e;
+  e.bound = b;
+  e.feasible = double( greedy( n ) );
+  return( e );
+  }
+
+ template< class F >
+ void branch( const node_type & n , F && f ) const {
+  if( n.k == p.size() )
+   return;
+  constexpr double none = std::numeric_limits< double >::infinity();
+  node_type c = n;                         // the item k left out
+  ++c.k;
+  if( n.weight + w[ n.k ] <= cap ) {       // the item k taken
+   node_type t = c;
+   t.weight += w[ n.k ];
+   t.profit += p[ n.k ];
+   t.x[ n.k ] = 1;
+   f( std::move( t ) , none );
+   }
+  f( std::move( c ) , none );
+  }
+
+ std::uint64_t hash( const node_type & n ) const {
+  return( mix64( ( std::uint64_t( n.k ) << 40 ) ^
+                 ( std::uint64_t( n.weight ) << 20 ) ^
+                 std::uint64_t( n.profit ) ) );
+  }
+
+ double estimate( const node_type & n ) const {
+  return( double( greedy( n ) ) );
+  }
+
+ // the optimal value, by the dynamic program on the capacity
+ long optimum( void ) const {
+  std::vector< long > best( std::size_t( cap ) + 1 , 0 );
+  for( std::size_t i = 0 ; i < p.size() ; ++i )
+   for( long c = cap ; c >= w[ i ] ; --c )
+    best[ c ] = std::max( best[ c ] , best[ c - w[ i ] ] + p[ i ] );
+  return( best[ cap ] );
+  }
+
+ // a random instance of the class of Pisinger cls (0 uncorrelated, 1
+ // weakly correlated, 2 strongly correlated), of n items of weight at most
+ // r, the capacity half the total weight
+ static Knapsack random( int cls , std::size_t n , long r ,
+                         std::uint64_t seed ) {
+  std::mt19937_64 gen( seed );
+  std::vector< std::pair< long , long > > it( n );
+  long tw = 0;
+  for( auto & [ pi , wi ] : it ) {
+   wi = 1 + long( random_below( gen , std::uint64_t( r ) ) );
+   if( cls == 0 )
+    pi = 1 + long( random_below( gen , std::uint64_t( r ) ) );
+   else
+    if( cls == 1 )
+     pi = std::max( 1L , wi - r / 10 + long( random_below(
+                                   gen , std::uint64_t( r / 5 + 1 ) ) ) );
+    else
+     pi = wi + r / 10;
+   tw += wi;
+   }
+  std::sort( it.begin() , it.end() , []( const auto & a , const auto & b ) {
+   return( a.first * b.second > b.first * a.second );
+   } );
+  Knapsack kp;
+  for( const auto & [ pi , wi ] : it ) {
+   kp.p.push_back( pi );
+   kp.w.push_back( wi );
+   }
+  kp.cap = tw / 2;
+  return( kp );
+  }
+
+ // true if n is a node of value v: its greedy completion fits and gives v
+ bool check( const node_type & n , double v ) const {
+  long wt = 0 , pt = 0;
+  for( std::size_t i = 0 ; i < n.k ; ++i )
+   if( n.x[ i ] ) {
+    wt += w[ i ];
+    pt += p[ i ];
+    }
+  return( ( wt == n.weight ) && ( pt == n.profit ) && ( wt <= cap ) &&
+          ( double( greedy( n ) ) == v ) );
+  }
+
+ };  // end( struct( Knapsack ) )
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the knapsack as a minimization of the opposite profit, which exercises
+// the other sense
+
+struct MinKnapsack {
+
+ using node_type = Knapsack::node_type;
+
+ static constexpr Sense sense = Sense::minimize;
+
+ const Knapsack & kp;
+
+ node_type root( void ) const { return( kp.root() ); }
+
+ Evaluation evaluate( node_type & n ) const {
+  Evaluation e = kp.evaluate( n );
+  e.bound = - e.bound;
+  e.feasible = - *e.feasible;
+  return( e );
+  }
+
+ template< class F >
+ void branch( const node_type & n , F && f ) const {
+  kp.branch( n , [ & ]( node_type && c , double e ) {
+   f( std::move( c ) , - e );
+   } );
+  }
+
+ };  // end( struct( MinKnapsack ) )
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the instances of the knapsack of the tests: 2 of each class of Pisinger
+
+static std::vector< Knapsack > knapsacks( void )
+{
+ std::vector< Knapsack > v;
+ for( int cls : { 0 , 1 , 2 } )
+  for( std::uint64_t seed : { 1 , 2 } )
+   v.push_back( Knapsack::random( cls , cls == 2 ? 30 : 50 , 1000 ,
+                                  seed ) );
+ return( v );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the sequential B&B on the knapsack against the dynamic program, with
+// every selection, in both senses, with a relative tolerance, with an
+// initial incumbent and with a node limit
+
+static void test_bb( const std::string & )
+{
+ int i = 0;
+ for( const Knapsack & kp : knapsacks() ) {
+  const double opt = double( kp.optimum() );
+  const std::string tag = " knapsack " + std::to_string( i++ );
+  for( Selection sel : { Selection::best_first , Selection::depth_first ,
+                         Selection::best_estimate , Selection::plunging } ) {
+   BBOptions o;
+   o.selection = sel;
+   const auto s = branch_and_bound( kp , o );
+   const std::string t = tag + " selection " +
+                         std::to_string( int( sel ) );
+   check( ( s.status == BBStatus::optimal ) && ( s.value == opt ) &&
+          s.node && kp.check( *s.node , s.value ) && ( s.gap <= 1e-9 ) ,
+          "B&B optimum" + t );
+   const auto m = branch_and_bound( MinKnapsack{ kp } , o );
+   check( ( m.status == BBStatus::optimal ) && ( m.value == - opt ) &&
+          m.node && kp.check( *m.node , - m.value ) ,
+          "B&B minimization" + t );
+   }
+
+  BBOptions o;
+  o.rel_gap = 0.05;
+  const auto r = branch_and_bound( kp , o );
+  check( ( r.status == BBStatus::optimal ) &&
+         ( r.value >= opt * 0.95 - 1e-9 ) && ( r.bound >= opt - 1e-9 ) &&
+         ( r.gap <= 0.05 * r.value + 1e-9 ) ,
+         "B&B within a relative gap of 5%" + tag );
+
+  o = BBOptions();
+  o.incumbent = opt;
+  double seen = 0;
+  o.on_incumbent = [ & ]( double v ) { seen = v; };
+  const auto z = branch_and_bound( kp , o );
+  check( ( z.status == BBStatus::optimal ) && ( z.value == opt ) &&
+         ! z.node && ( seen == 0 ) , "B&B with the optimum given" + tag );
+
+  o = BBOptions();
+  o.node_limit = 3;
+  const auto l = branch_and_bound( kp , o );
+  check( ( l.status == BBStatus::node_limit ) && ( l.bound >= opt - 1e-9 ) &&
+         ( l.stats.evaluated == 3 ) , "B&B node limit" + tag );
+  }
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// a parallel B&B of the problem q: K = 0 the shared queue, K = 1 the
+// distributed queues
+
+template< int K , class Runtime , class Q >
+static auto bb_parallel( const Q & q , const ParallelBBOptions & o )
+{
+ if constexpr( K == 0 )
+  return( SharedBranchAndBound< Q , Runtime >( q , o ).solve() );
+ else
+  return( DistributedBranchAndBound< Q , Runtime >( q , o ).solve() );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// a parallel B&B on the knapsack against the dynamic program, with 1 to 8
+// workers and every selection, in both senses (the minimization has no
+// hash( n ), and hence random owners), with a relative tolerance and with
+// a node limit
+
+template< int K , class Runtime >
+static void test_bb_parallel( const std::string & )
+{
+ const std::string name = std::string( K == 0 ? "shared" : "distributed" ) +
+                          " B&B on " + Runtime::name();
+ int i = 0;
+ for( const Knapsack & kp : knapsacks() ) {
+  const double opt = double( kp.optimum() );
+  const std::string tag = " knapsack " + std::to_string( i++ );
+  for( unsigned p : { 1u , 2u , 3u , 8u } )
+   for( Selection sel : { Selection::best_first , Selection::depth_first ,
+                          Selection::best_estimate , Selection::plunging } ) {
+    ParallelBBOptions o;
+    o.threads = p;
+    o.selection = sel;
+    const auto s = bb_parallel< K , Runtime >( kp , o );
+    check( ( s.status == BBStatus::optimal ) && ( s.value == opt ) &&
+           s.node && kp.check( *s.node , s.value ) && ( s.gap <= 1e-9 ) ,
+           name + tag + " p " + std::to_string( p ) + " selection " +
+           std::to_string( int( sel ) ) );
+    }
+
+  ParallelBBOptions o;
+  o.threads = 4;
+  const auto m = bb_parallel< K , Runtime >( MinKnapsack{ kp } , o );
+  check( ( m.status == BBStatus::optimal ) && ( m.value == - opt ) &&
+         m.node && kp.check( *m.node , - m.value ) ,
+         name + " minimization" + tag );
+
+  o.rel_gap = 0.05;
+  const auto r = bb_parallel< K , Runtime >( kp , o );
+  check( ( r.status == BBStatus::optimal ) &&
+         ( r.value >= opt * 0.95 - 1e-9 ) && ( r.bound >= opt - 1e-9 ) ,
+         name + " within a relative gap of 5%" + tag );
+
+  o = ParallelBBOptions();
+  o.threads = 4;
+  o.node_limit = 3;
+  const auto l = bb_parallel< K , Runtime >( kp , o );
+  check( ( l.status == BBStatus::node_limit ) && ( l.bound >= opt - 1e-9 ) ,
+         name + " node limit" + tag );
+  }
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // the cases of the tester, each with the runtime it needs ("-" if none):
 // test/tests.txt lists the same ones [see test_registry()]
@@ -723,14 +1025,24 @@ static const std::vector< Case > cases = {
  { "spa-thread" , "-" , test_spa< ThreadRuntime > } ,
  { "pbnf-thread" , "-" , test_pbnf< ThreadRuntime > } ,
  { "pase-thread" , "-" , test_pase< ThreadRuntime > } ,
+ { "bb" , "-" , test_bb } ,
+ { "bb-shared-thread" , "-" , test_bb_parallel< 0 , ThreadRuntime > } ,
+ { "bb-dist-thread" , "-" , test_bb_parallel< 1 , ThreadRuntime > } ,
  #ifdef ASTAR_HAS_OPENMP
   { "hda-openmp" , "openmp" , test_hda< OpenMPRuntime > } ,
   { "spa-openmp" , "openmp" , test_spa< OpenMPRuntime > } ,
   { "pbnf-openmp" , "openmp" , test_pbnf< OpenMPRuntime > } ,
+  { "bb-shared-openmp" , "openmp" ,
+    test_bb_parallel< 0 , OpenMPRuntime > } ,
+  { "bb-dist-openmp" , "openmp" , test_bb_parallel< 1 , OpenMPRuntime > } ,
  #endif
  #ifdef ASTAR_HAS_FASTFLOW
   { "hda-fastflow" , "fastflow" , test_hda< FastFlowRuntime > } ,
   { "farm-fastflow" , "fastflow" , test_farm } ,
+  { "bb-shared-fastflow" , "fastflow" ,
+    test_bb_parallel< 0 , FastFlowRuntime > } ,
+  { "bb-dist-fastflow" , "fastflow" ,
+    test_bb_parallel< 1 , FastFlowRuntime > } ,
  #endif
  #ifdef ASTAR_HAS_MPI
   { "mpi" , "mpi" , test_mpi } ,

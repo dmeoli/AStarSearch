@@ -25,9 +25,9 @@ the interface that a B&B solver built on a modeling system would use.
 
 ## The concept
 
-A type P is a `BranchAndBound` problem if it provides the types
-`node_type` (movable) and `value_type` (arithmetic), a constant `sense`
-(`Sense::minimize` or `Sense::maximize`), and three methods. The method
+A type P is a `BranchAndBound` problem if it provides the copyable type
+`node_type`, a constant `sense` (`Sense::minimize` or `Sense::maximize`),
+and three methods, all the values being doubles. The method
 `root()` returns the node of the whole set. The method `evaluate( n )`
 computes the bound of the node n, possibly storing in n what the branching
 needs (say, the fractional solution of a relaxation), and returns an
@@ -141,13 +141,18 @@ solution and gives the two children, with the bound of the parent as their
 estimate. Such a solver then calls one of
 
     auto s = branch_and_bound( problem , options );
-    auto s = ParallelBranchAndBound< P , Runtime >( problem , options ).solve();
+    auto s = SharedBranchAndBound< P , Runtime >( problem , options ).solve();
+    auto s = DistributedBranchAndBound< P , Runtime >( problem , options )
+              .solve();
 
-and reads the incumbent, the bound and the gap from the `Solution`. In the options one gives the policy, the tolerances, the initial incumbent and the
-callback, and for the parallel searches the scheme (shared queue,
-distributed or farm), the number of workers and the batch size. We expect the choice among the schemes to depend somewhat on the cost of an evaluation w.r.t.
-that of moving a node, which only a measurement on the instances of
-interest can settle.
+and reads the incumbent, the bound and the gap from the `Solution`. In
+the options one gives the policy, the tolerances, the initial incumbent
+and the callback, and for the parallel searches the number of workers and
+the batch size; the scheme is the class, and the runtime (C++ threads,
+OpenMP or FastFlow) its second parameter. We expect the choice among the
+schemes to depend somewhat on the cost of an evaluation w.r.t. that of
+moving a node, which only a measurement on the instances of interest can
+settle.
 
 ## The test
 

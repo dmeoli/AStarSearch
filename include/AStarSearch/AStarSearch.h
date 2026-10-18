@@ -26,6 +26,12 @@
  *
  * - FarmAStar, a master-worker A* on a FastFlow farm [see FarmAStar.h].
  *
+ * Beside them, the best-first search with an incumbent, i.e.,
+ * Branch-and-Bound, of a problem satisfying the concept BranchAndBound: the
+ * sequential BranchAndBoundSearch [see BranchAndBound.h], and
+ * SharedBranchAndBound and DistributedBranchAndBound on the C++ threads,
+ * OpenMP or FastFlow [see ParallelBranchAndBound.h].
+ *
  * The domains of the library are SlidingTile (the (W x H - 1)-puzzle),
  * SequenceScore (the same with the heuristic of Nilsson), Grid (pathfinding
  * on a GridMap with 4 or 8 moves) and ExplicitGraph (a weighted graph given
@@ -51,6 +57,8 @@
 
 #include "AStarSearch/AStar.h"
 
+#include "AStarSearch/BranchAndBound.h"
+
 #include "AStarSearch/Distribution.h"
 
 #include "AStarSearch/Domain.h"
@@ -62,6 +70,8 @@
 #include "AStarSearch/HDAStar.h"
 
 #include "AStarSearch/PASE.h"
+
+#include "AStarSearch/ParallelBranchAndBound.h"
 
 #include "AStarSearch/SPAStar.h"
 
