@@ -29,6 +29,10 @@
 
 #include <cstdint>
 
+#include <limits>
+
+#include <stdexcept>
+
 #include <utility>
 
 #include <vector>
@@ -186,6 +190,153 @@ class NodeTable {
  std::size_t f_size;                         ///< the number of nodes
 
  };  // end( class( NodeTable ) )
+
+/*--------------------------------------------------------------------------*/
+/*---------------------------- CLASS IndexTable ----------------------------*/
+/*--------------------------------------------------------------------------*/
+/// the closed list in slots of 8 bytes, for the nodes of one NodePool
+/** A slot keeps 32 bits of the hash of the state (the fingerprint) and the
+ * index of the node in the NodePool plus one, so that 0 is an empty slot:
+ * the table takes half the memory of NodeTable, whose slots keep the whole
+ * hash and the pointer, at the price of an indirection through the chunks
+ * of the pool and of a doubling that recomputes the hashes of the states
+ * (with expected_nodes in the SearchOptions the table never doubles). The
+ * first slot of a hash is chosen as in NodeTable, the probing is linear,
+ * the load factor stays below 7 / 10, and the slots are on huge pages. Up
+ * to 2^32 - 1 nodes. The node that make() returns has to be the last one
+ * allocated in the pool. */
+
+template< class NodeT , class Pool , class Hash >
+class IndexTable {
+
+/*------------------------ PUBLIC PART OF THE CLASS ------------------------*/
+
+ public:
+
+ /// the number of slots that holds n nodes without growing
+
+ [[nodiscard]] static std::size_t slots_for( std::size_t n ) noexcept {
+  return( n / 7 * 10 + 16 );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// constructor, taking the pool of the nodes, the hash of the states and
+ /// the initial number of slots
+
+ IndexTable( const Pool & pool , Hash hash , std::size_t capacity = 1024 )
+  : f_pool( pool ) , f_hash( std::move( hash ) ) , f_size( 0 ) {
+  v_slots.resize( std::bit_ceil( capacity < 16 ? std::size_t( 16 )
+                                               : capacity ) );
+  f_mask = v_slots.size() - 1;
+  f_shift = 64 - std::countr_zero( v_slots.size() );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// looks up a state, inserting the node made by make() if it is absent
+
+ template< class State , class Make >
+ std::pair< NodeT * , bool > find_or_insert( const State & state ,
+                                             std::uint64_t hash ,
+                                             Make && make ) {
+  const auto fp = std::uint32_t( hash );
+  std::size_t i = index( hash );
+  for( ; v_slots[ i ] ; i = ( i + 1 ) & f_mask )
+   if( std::uint32_t( v_slots[ i ] >> 32 ) == fp ) {
+    NodeT * n = node( v_slots[ i ] );
+    if( n->state == state )
+     return( std::pair( n , false ) );
+    }
+  NodeT * n = make();
+  const std::size_t k = f_pool.size();       // the index of n, plus one
+  if( k > std::numeric_limits< std::uint32_t >::max() )
+   throw( std::length_error( "IndexTable::find_or_insert: more than "
+                             "2^32 - 1 nodes" ) );
+  v_slots[ i ] = ( std::uint64_t( fp ) << 32 ) | k;
+  if( ++f_size * 10 > v_slots.size() * 7 )
+   grow();
+  return( std::pair( n , true ) );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// looks up a state, returning nullptr if it has never been generated
+
+ template< class State >
+ [[nodiscard]] NodeT * find( const State & state , std::uint64_t hash ) const
+ {
+  const auto fp = std::uint32_t( hash );
+  for( std::size_t i = index( hash ) ; v_slots[ i ] ;
+       i = ( i + 1 ) & f_mask )
+   if( std::uint32_t( v_slots[ i ] >> 32 ) == fp ) {
+    NodeT * n = node( v_slots[ i ] );
+    if( n->state == state )
+     return( n );
+    }
+  return( nullptr );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// brings in the cache the first slot probed for hash
+
+ void prefetch( std::uint64_t hash ) const noexcept {
+  AStar_di_unipi_it::prefetch( & v_slots[ index( hash ) ] );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// the number of stored nodes
+
+ [[nodiscard]] std::size_t size( void ) const noexcept {
+  return( f_size );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// the memory taken by the slots, in bytes
+
+ [[nodiscard]] std::size_t bytes( void ) const noexcept {
+  return( v_slots.size() * sizeof( std::uint64_t ) );
+  }
+
+/*----------------------- PRIVATE PART OF THE CLASS ------------------------*/
+
+ private:
+
+ // the node of a slot
+ [[nodiscard]] NodeT * node( std::uint64_t slot ) const noexcept {
+  return( f_pool.at( std::size_t( std::uint32_t( slot ) ) - 1 ) );
+  }
+
+ // the slot of a hash: the top bits of hash * 2^64 / phi
+ [[nodiscard]] std::size_t index( std::uint64_t hash ) const noexcept {
+  return( static_cast< std::size_t >( ( hash * 0x9e3779b97f4a7c15ULL )
+                                      >> f_shift ) );
+  }
+
+ // doubles the number of slots, moving the old ones by the hashes of the
+ // states of their nodes
+ void grow( void ) {
+  std::vector< std::uint64_t , HugePageAllocator< std::uint64_t > > old(
+                                                       v_slots.size() * 2 );
+  old.swap( v_slots );
+  f_mask = v_slots.size() - 1;
+  --f_shift;
+  for( const std::uint64_t s : old ) {
+   if( ! s )
+    continue;
+   std::size_t i = index( f_hash( node( s )->state ) );
+   while( v_slots[ i ] )
+    i = ( i + 1 ) & f_mask;
+   v_slots[ i ] = s;
+   }
+  }
+
+ const Pool & f_pool;                        ///< the pool of the nodes
+ Hash f_hash;                                ///< the hash of a state
+ std::vector< std::uint64_t , HugePageAllocator< std::uint64_t > > v_slots;
+                                             ///< the slots
+ std::size_t f_mask;                         ///< the number of slots - 1
+ int f_shift;                      ///< 64 - log2 of the number of slots
+ std::size_t f_size;                         ///< the number of nodes
+
+ };  // end( class( IndexTable ) )
 
 /*--------------------------------------------------------------------------*/
 

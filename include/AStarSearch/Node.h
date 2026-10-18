@@ -23,6 +23,8 @@
 /*-------------------------------- INCLUDES --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+#include <bit>
+
 #include <cstddef>
 
 #include <memory>
@@ -88,7 +90,8 @@ class NodePool {
  /// constructor, taking the number of nodes of a chunk
 
  explicit NodePool( std::size_t chunk = std::size_t( 1 ) << 16 )
-  : f_chunk( chunk ) , f_used( 0 ) , f_size( 0 ) {}
+  : f_chunk( std::bit_ceil( chunk ) ) , f_bits( std::countr_zero( f_chunk ) ) ,
+    f_used( 0 ) , f_size( 0 ) {}
 
  /// destructor: destroys the nodes and frees the chunks
 
@@ -117,6 +120,13 @@ class NodePool {
   }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// the i-th node allocated
+
+ [[nodiscard]] NodeT * at( std::size_t i ) const noexcept {
+  return( v_chunks[ i >> f_bits ] + ( i & ( f_chunk - 1 ) ) );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// the number of nodes allocated so far
 
  [[nodiscard]] std::size_t size( void ) const noexcept {
@@ -134,7 +144,8 @@ class NodePool {
 
  private:
 
- std::size_t f_chunk;                            ///< nodes per chunk
+ std::size_t f_chunk;                  ///< nodes per chunk, a power of 2
+ int f_bits;                                     ///< log2 of f_chunk
  std::size_t f_used;                   ///< nodes used in the last chunk
  std::size_t f_size;                             ///< nodes allocated
  std::vector< NodeT * > v_chunks;                          ///< the chunks

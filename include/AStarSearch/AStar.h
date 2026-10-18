@@ -91,10 +91,13 @@ class AStar {
   SolutionT sol;
   SearchStats & st = sol.stats;
   NodePool< NodeT > pool;
-  NodeTable< NodeT > table( f_options.expected_nodes
-                            ? NodeTable< NodeT >::slots_for(
-                                               f_options.expected_nodes )
-                            : 1024 );
+  const auto hash = [ & ]( const State & s ) {
+   return( f_domain.hash( s ) );
+   };
+  using Table = IndexTable< NodeT , NodePool< NodeT > , decltype( hash ) >;
+  Table table( pool , hash , f_options.expected_nodes
+                             ? Table::slots_for( f_options.expected_nodes )
+                             : 1024 );
   Open open;
   std::vector< Kid > kids;                 // the successors of a node
 
