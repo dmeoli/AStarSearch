@@ -38,7 +38,7 @@
 
 #include "PBeFS/astar/Distribution.h"
 
-#include "PBeFS/core/ThreadRuntime.h"
+#include "PBeFS/core/ThreadMailbox.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
@@ -51,15 +51,11 @@ namespace PBeFS_di_unipi_it
 /*--------------------------------------------------------------------------*/
 /*------------------------- CLASS ParallelOptions --------------------------*/
 /*--------------------------------------------------------------------------*/
-/// the options of the parallel searches
+/// the options of the parallel searches: those of the sequential search,
+/// and the parameters of the parallel ones [see ParallelParams], with
+/// batches of 64 nodes flushed every 64 expansions
 
-struct ParallelOptions : public SearchOptions {
-
- unsigned threads = 1;          ///< the number of workers
- std::size_t batch = 64;        ///< nodes packed in a message
- unsigned flush_period = 64;    ///< expansions between flushes of outboxes
- std::uint64_t seed = 1;        ///< seed of the work distribution
-
+struct ParallelOptions : public SearchOptions , public ParallelParams {
  };  // end( struct( ParallelOptions ) )
 
 /*--------------------------------------------------------------------------*/
@@ -76,16 +72,8 @@ struct ParallelOptions : public SearchOptions {
  * the worker waits. The goal test is done at the expansion, the cost of
  * the best goal found (the incumbent) prunes every node with f not
  * smaller, and the search ends when no worker has a node with f smaller
- * than the incumbent and no node is travelling.
- *
- * The termination is detected with three shared counters: pending, the
- * nodes sent and not yet processed (raised before a batch becomes visible,
- * lowered after it has been processed), idle, the workers waiting, and
- * epoch, raised by a worker that stops waiting after it has left idle. A
- * waiting worker declares the end when epoch does not change while it
- * reads idle == p and pending == 0: at the moment idle was read nobody
- * had work, and no message could be in transit, since consuming it would
- * have required somebody to stop waiting, i.e., to change epoch.
+ * than the incumbent and no node is travelling, which is detected with
+ * the three counters of ThreadMailbox [see ThreadMailbox.h].
  *
  * The node of a state belongs to its owner, which is the only worker that
  * writes it; parent pointers cross the workers, and they are followed only
@@ -126,12 +114,7 @@ class HDAStar {
  HDAStar( const D & domain , const Dist & dist ,
           const ParallelOptions & options = {} )
   : f_domain( domain ) , f_dist( dist ) , f_options( options ) {
-  if( f_options.threads == 0 )
-   f_options.threads = 1;
-  if( f_options.batch == 0 )
-   f_options.batch = 1;
-  if( f_options.flush_period == 0 )
-   f_options.flush_period = 1;
+  f_options.normalize();
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/
@@ -148,8 +131,7 @@ class HDAStar {
    const State s0 = f_domain.initial_state();
    std::vector< Msg > b{ Msg{ s0 , Cost( 0 ) ,
                               Cost( f_domain.heuristic( s0 ) ) , nullptr } };
-   sh.pending.store( 1 );
-   sh.channels.send( 0 , f_dist.owner( s0 , p ) , b );
+   sh.mail.seed( f_dist.owner( s0 , p ) , b );
    }
 
   std::vector< std::unique_ptr< Worker > > w( p );
@@ -166,7 +148,7 @@ class HDAStar {
    st.generated += x->f_st.generated;
    st.duplicates += x->f_st.duplicates;
    st.sent += x->f_st.sent;
-   st.messages += x->f_st.messages;
+   st.messages += x->f_out.messages();
    st.stored += x->f_pool.size();
    st.expanded_by.push_back( x->f_st.expanded );
    st.stored_by.push_back( x->f_pool.size() );
@@ -187,23 +169,19 @@ class HDAStar {
 
  private:
 
- using Channels = typename Runtime::template channels_type< Msg >;
+ using Mailbox = ThreadMailbox< Msg , Runtime >;
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  // the data shared by the workers
 
  struct Shared {
 
-  explicit Shared( unsigned np ) : p( np ) , channels( np ) {}
+  explicit Shared( unsigned np ) : p( np ) , mail( np ) {}
 
   unsigned p;                                   // the number of workers
-  Channels channels;                            // the inboxes
+  Mailbox mail;                                 // the messages
   alignas( cache_line ) std::atomic< Cost > incumbent{
                                                    infinite_cost< Cost >() };
-  alignas( cache_line ) std::atomic< std::int64_t > pending{ 0 };
-  alignas( cache_line ) std::atomic< unsigned > idle{ 0 };
-  alignas( cache_line ) std::atomic< std::uint64_t > epoch{ 0 };
-  alignas( cache_line ) std::atomic< bool > done{ false };
   std::atomic< bool > limit_hit{ false };
   std::mutex goal_mutex;                        // protects goal
   NodeT * goal = nullptr;                       // the best goal found
@@ -216,17 +194,14 @@ class HDAStar {
 
   Worker( const HDAStar & a , Shared & s , unsigned i )
    : f_a( a ) , f_sh( s ) , f_id( i ) , f_dist( a.f_dist ) ,
-     v_out( s.p ) {
-   for( auto & o : v_out )
-    o.reserve( a.f_options.batch );
-   }
+     f_out( s.mail , i , a.f_options.batch ) {}
 
   // the main loop
   void run( void ) {
    unsigned since_flush = 0;
-   while( ! f_sh.done.load( std::memory_order_acquire ) ) {
-    if( std::size_t n = f_sh.channels.receive( f_id , v_in ,
-                                               f_open.empty() ) ) {
+   while( ! f_sh.mail.done() ) {
+    if( std::size_t n = f_sh.mail.receive( f_id , v_in ,
+                                           f_open.empty() ) ) {
      // the hashes and the prefetches of the whole batch first, so that
      // the cache misses of the lookups overlap
      v_hash.resize( n );
@@ -236,25 +211,25 @@ class HDAStar {
       }
      for( std::size_t k = 0 ; k < n ; ++k )
       insert( v_in[ k ] , v_hash[ k ] );
-     f_sh.pending.fetch_sub( std::int64_t( n ) );
+     f_sh.mail.processed( n );
      }
 
     if( NodeT * n = next() ) {
      expand( n );
      if( ++since_flush >= f_a.f_options.flush_period ) {
       since_flush = 0;
-      flush( false );
+      f_out.flush( false );
       }
      if( f_a.f_options.node_limit &&
          ( f_pool.size() >= f_a.f_options.node_limit ) ) {
       f_sh.limit_hit.store( true );
-      f_sh.done.store( true , std::memory_order_release );
+      f_sh.mail.stop();
       }
      continue;
      }
 
-    flush( true );           // nothing to expand: send everything, then
-    wait();                  // wait for mail or for the end
+    f_out.flush( true );     // nothing to expand: send everything, then
+    f_sh.mail.wait( f_id );  // wait for mail or for the end
     }
    }
 
@@ -305,11 +280,8 @@ class HDAStar {
      insert( Msg{ t , g , ht , n } , f_a.f_domain.hash( t ) );
      return;
      }
-    auto & o = v_out[ dst ];
-    o.push_back( Msg{ t , g , ht , n } );
+    f_out.push( dst , Msg{ t , g , ht , n } );
     ++f_st.sent;
-    if( o.size() >= f_a.f_options.batch )
-     post( dst , false );
     } );
    }
 
@@ -336,52 +308,6 @@ class HDAStar {
      ++f_st.duplicates;
    }
 
-  // sends the outbox of dst, waiting for the lock if block; true if sent
-  bool post( unsigned dst , bool block ) {
-   auto & o = v_out[ dst ];
-   const auto k = std::int64_t( o.size() );
-   f_sh.pending.fetch_add( k );
-   if( block )
-    f_sh.channels.send( f_id , dst , o );
-   else
-    if( ! f_sh.channels.try_send( f_id , dst , o ) ) {
-     f_sh.pending.fetch_sub( k );
-     return( false );
-     }
-   ++f_st.messages;
-   o.reserve( f_a.f_options.batch );
-   return( true );
-   }
-
-  // sends the non-empty outboxes
-  void flush( bool block ) {
-   for( unsigned d = 0 ; d < f_sh.p ; ++d )
-    if( ! v_out[ d ].empty() )
-     post( d , block );
-   }
-
-  // waits until mail arrives or the search ends
-  void wait( void ) {
-   f_sh.idle.fetch_add( 1 );
-   Backoff backoff;
-   for( ;; ) {
-    if( f_sh.done.load( std::memory_order_acquire ) )
-     return;
-    if( f_sh.channels.has_mail( f_id ) ) {
-     f_sh.idle.fetch_sub( 1 );     // first leave idle, then change epoch
-     f_sh.epoch.fetch_add( 1 );
-     return;
-     }
-    const auto e = f_sh.epoch.load();
-    if( ( f_sh.idle.load() == f_sh.p ) && ( f_sh.pending.load() == 0 ) &&
-        ( f_sh.epoch.load() == e ) ) {
-     f_sh.done.store( true , std::memory_order_release );
-     return;
-     }
-    backoff.pause();
-    }
-   }
-
   const HDAStar & f_a;                          // the search
   Shared & f_sh;                                // the shared data
   unsigned f_id;                                // the index of the worker
@@ -389,7 +315,7 @@ class HDAStar {
   NodePool< NodeT > f_pool;                     // its nodes
   NodeTable< NodeT > f_table;                   // its CLOSED list
   Open f_open;                                  // its OPEN list
-  std::vector< std::vector< Msg > > v_out;      // its outboxes
+  typename Mailbox::Outboxes f_out;             // its outboxes
   std::vector< Msg > v_in;                      // the last inbox received
   std::vector< std::uint64_t > v_hash;          // the hashes of v_in
   SearchStats f_st;                             // its counters

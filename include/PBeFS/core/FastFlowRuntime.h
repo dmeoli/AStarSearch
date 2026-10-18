@@ -3,9 +3,10 @@
 /*--------------------------------------------------------------------------*/
 /** @file
  * Header file for FastFlowRuntime, the runtime that runs the workers of the
- * parallel searches as the workers of a FastFlow farm, and for
+ * parallel searches as the workers of a FastFlow farm, for
  * SpscMeshChannels, its channels made of FastFlow lock-free single-producer
- * single-consumer queues, one for each ordered pair of workers.
+ * single-consumer queues, one for each ordered pair of workers, and for
+ * run_feedback_farm(), which runs the master-worker farms of the searches.
  *
  * \author Donato Meoli \n
  *         Dipartimento di Informatica \n
@@ -222,6 +223,33 @@ struct FastFlowRuntime {
  [[nodiscard]] static std::string name( void ) { return( "fastflow" ); }
 
  };  // end( struct( FastFlowRuntime ) )
+
+/*--------------------------------------------------------------------------*/
+/*------------------------------- FUNCTIONS --------------------------------*/
+/*--------------------------------------------------------------------------*/
+/// runs a master-worker farm with feedback, of p workers, until the master
+/// ends it
+/** The master is the emitter of the farm, which sends the tasks to the
+ * workers on demand, and what a worker returns goes back to the master;
+ * there is no collector. With fewer CPUs than the master and the workers,
+ * a spinning thread may hold the CPU that the one it waits for needs, and
+ * hence the threads block instead. The farm, and with it the workers, is
+ * the caller's, which may read them afterwards. Throws, naming who, if the
+ * farm fails. */
+
+template< class Task >
+void run_feedback_farm( ff::ff_Farm< Task > & farm , unsigned p ,
+                        const std::string & who )
+{
+ farm.remove_collector();
+ farm.wrap_around();
+ farm.set_scheduling_ondemand();
+ const unsigned cpus = available_cpus();
+ if( cpus && ( cpus < p + 1 ) )
+  farm.blocking_mode( true );
+ if( farm.run_and_wait_end() < 0 )
+  throw( std::runtime_error( who + ": the farm failed" ) );
+ }
 
 /*--------------------------------------------------------------------------*/
 

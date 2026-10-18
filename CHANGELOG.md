@@ -86,6 +86,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   over MPI with the termination of Mattern written once, and the helpers),
   astar/ (the graph searches and their domains) and bnb/ (the tree
   searches), each with its header (core.h, astar.h, bnb.h) and PBeFS.h for
-  all of them
+  all of them; the messages between the workers (ThreadMailbox, in shared
+  memory, and MPIMailbox), with the detection of the end, the parameters of
+  the parallel searches (ParallelParams) and the start of the master-worker
+  farms are written once for A* and branch-and-bound
+- the tests cover the limit cases of every search, on every runtime and
+  over MPI: an initial state that is the goal, one move, a node limit of 5,
+  an unsolvable instance, more workers than states, and the parameters at
+  0 or 1 for A*; an infeasible root, a root solved without branching, an
+  initial incumbent better than the optimum, an absolute tolerance, a time
+  limit, a node limit of 1, plunging at the two extremes, more workers
+  than nodes, and the parameters at 0 or 1 for branch-and-bound
 
 [Unreleased]: https://github.com/dmeoli/PBeFS/commits/main

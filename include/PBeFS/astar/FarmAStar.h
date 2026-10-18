@@ -34,9 +34,9 @@
 
 #include <vector>
 
-#include <ff/ff.hpp>
-
 #include "PBeFS/astar/HDAStar.h"
+
+#include "PBeFS/core/FastFlowRuntime.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
@@ -95,10 +95,7 @@ class FarmAStar {
 
  explicit FarmAStar( const D & domain , const ParallelOptions & options = {} )
   : f_domain( domain ) , f_options( options ) {
-  if( f_options.threads == 0 )
-   f_options.threads = 1;
-  if( f_options.batch == 0 )
-   f_options.batch = 1;
+  f_options.normalize();
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/
@@ -112,16 +109,7 @@ class FarmAStar {
   for( unsigned i = 0 ; i < f_options.threads ; ++i )
    workers.push_back( std::make_unique< Worker >( f_domain , i + 1 ) );
   ff::ff_Farm< Task > farm( std::move( workers ) , master );
-  farm.remove_collector();
-  farm.wrap_around();
-  farm.set_scheduling_ondemand();
-  // with fewer CPUs than master + workers, a spinning thread may hold the
-  // CPU that the one it waits for needs: the threads have to block instead
-  const unsigned cpus = available_cpus();
-  if( cpus && ( cpus < f_options.threads + 1 ) )
-   farm.blocking_mode( true );
-  if( farm.run_and_wait_end() < 0 )
-   throw( std::runtime_error( "FarmAStar::solve: the farm failed" ) );
+  run_feedback_farm( farm , f_options.threads , "FarmAStar::solve" );
 
   SolutionT sol;
   sol.stats = master.f_st;

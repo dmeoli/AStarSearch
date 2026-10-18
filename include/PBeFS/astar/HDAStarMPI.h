@@ -94,10 +94,7 @@ class HDAStarMPI {
              MPI_Comm comm = MPI_COMM_WORLD )
   : f_domain( domain ) , f_dist( dist ) , f_options( options ) ,
     f_comm( comm ) {
-  if( f_options.batch == 0 )
-   f_options.batch = 1;
-  if( f_options.flush_period == 0 )
-   f_options.flush_period = 1;
+  f_options.normalize();
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/

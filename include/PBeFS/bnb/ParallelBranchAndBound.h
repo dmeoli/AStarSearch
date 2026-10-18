@@ -39,7 +39,7 @@
 
 #include "PBeFS/bnb/BranchAndBound.h"
 
-#include "PBeFS/core/ThreadRuntime.h"
+#include "PBeFS/core/ThreadMailbox.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
@@ -53,15 +53,20 @@ namespace PBeFS_di_unipi_it
 /*------------------------ CLASS ParallelBBOptions -------------------------*/
 /*--------------------------------------------------------------------------*/
 /// the options of the parallel B&B
-/** node_limit bounds the evaluations of all the workers together; batch and
- * flush_period are used by DistributedBranchAndBound only. */
+/** Those of the sequential search, and the parameters of the parallel ones
+ * [see ParallelParams], with batches of 16 nodes flushed at every
+ * evaluation, since an evaluation is usually "expensive"; node_limit
+ * bounds the evaluations of all the workers together, batch is used by the
+ * searches that send nodes (the distributed, the farm and the MPI ones),
+ * flush_period by the distributed and the MPI ones, and seed gives the
+ * owners of the nodes when the problem gives no hash( n ). */
 
-struct ParallelBBOptions : public BBOptions {
+struct ParallelBBOptions : public BBOptions , public ParallelParams {
 
- unsigned threads = 1;          ///< the number of workers
- std::size_t batch = 16;        ///< nodes packed in a message
- unsigned flush_period = 1;     ///< evaluations between flushes of outboxes
- std::uint64_t seed = 1;        ///< seed of the owners, without hash( n )
+ ParallelBBOptions( void ) {
+  batch = 16;
+  flush_period = 1;
+  }
 
  };  // end( struct( ParallelBBOptions ) )
 
@@ -176,6 +181,25 @@ std::size_t bb_dive( const std::vector< Item > & kids , double best ,
  return( kids.size() );
  }
 
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/// true if the node or the time limit of o is reached, given the
+/// evaluations of all the workers and the clock of the search; then limit
+/// is set, and time too if the time limit is reached
+
+inline bool bb_limit( const BBOptions & o , std::uint64_t evaluated ,
+                      const Stopwatch & clock , std::atomic< bool > & limit ,
+                      std::atomic< bool > & time )
+{
+ const bool nodes = o.node_limit && ( evaluated >= o.node_limit );
+ const bool late = ( o.time_limit > 0 ) && ( clock.seconds() >= o.time_limit );
+ if( ! ( nodes || late ) )
+  return( false );
+ if( late )
+  time.store( true );
+ limit.store( true );
+ return( true );
+ }
+
 }  // end( namespace detail )
 
 /*--------------------------------------------------------------------------*/
@@ -209,8 +233,7 @@ class SharedBranchAndBound {
  explicit SharedBranchAndBound( const P & problem ,
                                 const ParallelBBOptions & options = {} )
   : f_p( problem ) , f_options( options ) {
-  if( f_options.threads == 0 )
-   f_options.threads = 1;
+  f_options.normalize();
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/
@@ -392,16 +415,9 @@ class SharedBranchAndBound {
 
   // true if a limit is reached, which ends the search
   bool stop( void ) {
-   const BBOptions & o = f_a.f_options;
-   const bool nodes = o.node_limit &&
-                      ( f_sh.evaluated.load() >= o.node_limit );
-   const bool time = ( o.time_limit > 0 ) &&
-                     ( f_clock.seconds() >= o.time_limit );
-   if( ! ( nodes || time ) )
+   if( ! detail::bb_limit( f_a.f_options , f_sh.evaluated.load() , f_clock ,
+                           f_sh.limit , f_sh.time ) )
     return( false );
-   if( time )
-    f_sh.time.store( true );
-   f_sh.limit.store( true );
    f_sh.done.store( true , std::memory_order_release );
    return( true );
    }
@@ -430,8 +446,8 @@ class SharedBranchAndBound {
  * gives hash( n ), a random worker otherwise (with depth-first or plunging,
  * the child that dives is kept). Since a tree has no duplicates, the owners
  * only balance the load. The incumbent is shared, and the termination is
- * detected as in HDAStar, by a counter of the nodes in flight, a counter of
- * the idle workers and an epoch [see HDAStar.h]. */
+ * detected as in HDAStar, by the three counters of ThreadMailbox [see
+ * ThreadMailbox.h]. */
 
 template< BranchAndBound P , class Runtime = ThreadRuntime >
 class DistributedBranchAndBound {
@@ -459,12 +475,7 @@ class DistributedBranchAndBound {
  explicit DistributedBranchAndBound( const P & problem ,
                                      const ParallelBBOptions & options = {} )
   : f_p( problem ) , f_options( options ) {
-  if( f_options.threads == 0 )
-   f_options.threads = 1;
-  if( f_options.batch == 0 )
-   f_options.batch = 1;
-  if( f_options.flush_period == 0 )
-   f_options.flush_period = 1;
+  f_options.normalize();
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/
@@ -506,10 +517,8 @@ class DistributedBranchAndBound {
     ++i;
     b[ dst ].push_back( Msg{ std::move( l.node ) , l.bound , l.depth } );
     }
-   sh.pending.store( std::int64_t( i ) );
    for( unsigned d = 0 ; d < p ; ++d )
-    if( ! b[ d ].empty() )
-     sh.channels.send( 0 , d , b[ d ] );
+    sh.mail.seed( d , b[ d ] );
    }
 
   std::vector< std::unique_ptr< Worker > > w( p );
@@ -526,16 +535,17 @@ class DistributedBranchAndBound {
    };
   for( unsigned i = 0 ; i < p ; ++i ) {
    Worker & x = *w[ i ];
+   x.f_st.messages = x.f_out.messages();
    sol.stats.add( x.f_st );
    fr.merge( std::move( x.f_fr ) );
    fr.add( x.f_q , BBLeafKind::open );
    if( x.f_dive )
     fr.add( std::move( x.f_dive->node ) , x.f_dive->bound ,
             x.f_dive->depth , BBLeafKind::open );
-   for( auto & o : x.v_out )
+   for( auto & o : x.f_out.boxes() )
     for( Msg & m : o )
      open( m );
-   sh.channels.receive( i , in , true );
+   sh.mail.receive( i , in , true );
    for( Msg & m : in )
     open( m );
    }
@@ -547,7 +557,7 @@ class DistributedBranchAndBound {
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
- using Channels = typename Runtime::template channels_type< Msg >;
+ using Mailbox = ThreadMailbox< Msg , Runtime >;
  using Item = typename BBQueue< Node >::Item;
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -555,16 +565,12 @@ class DistributedBranchAndBound {
 
  struct Shared {
 
-  Shared( unsigned np , double z ) : p( np ) , channels( np ) , inc( z ) {}
+  Shared( unsigned np , double z ) : p( np ) , mail( np ) , inc( z ) {}
 
   unsigned p;                                   // the number of workers
-  Channels channels;                            // the inboxes
+  Mailbox mail;                                 // the messages
   BBIncumbent< Node > inc;                      // the incumbent
-  alignas( cache_line ) std::atomic< std::int64_t > pending{ 0 };
-  alignas( cache_line ) std::atomic< unsigned > idle{ 0 };
-  alignas( cache_line ) std::atomic< std::uint64_t > epoch{ 0 };
   alignas( cache_line ) std::atomic< std::uint64_t > evaluated{ 0 };
-  alignas( cache_line ) std::atomic< bool > done{ false };
   std::atomic< bool > limit{ false };           // stopped by a limit
   std::atomic< bool > time{ false };            // ... the time limit
   };
@@ -578,7 +584,8 @@ class DistributedBranchAndBound {
           const Stopwatch & c )
    : f_a( a ) , f_sh( s ) , f_id( i ) , f_clock( c ) ,
      f_q( a.f_options.selection ) ,
-     f_gen( a.f_options.seed + i ) , v_out( s.p ) ,
+     f_gen( a.f_options.seed + i ) ,
+     f_out( s.mail , i , a.f_options.batch ) ,
      f_fr( a.f_options.keep_frontier ) {}
 
   // the main loop
@@ -591,12 +598,12 @@ class DistributedBranchAndBound {
     };
    unsigned since_flush = 0;
 
-   while( ! f_sh.done.load( std::memory_order_acquire ) ) {
-    if( std::size_t n = f_sh.channels.receive( f_id , v_in ,
-                                               f_q.empty() && ! f_dive ) ) {
+   while( ! f_sh.mail.done() ) {
+    if( std::size_t n = f_sh.mail.receive( f_id , v_in ,
+                                           f_q.empty() && ! f_dive ) ) {
      for( Msg & m : v_in )
       push( Item{ std::move( m.node ) , m.bound , m.depth } );
-     f_sh.pending.fetch_sub( std::int64_t( n ) );
+     f_sh.mail.processed( n );
      }
 
     if( std::optional< Item > it = next() ) {
@@ -622,13 +629,13 @@ class DistributedBranchAndBound {
        send( std::move( v_kids[ j ] ) );
      if( ++since_flush >= f_a.f_options.flush_period ) {
       since_flush = 0;
-      flush( false );
+      f_out.flush( false );
       }
      continue;
      }
 
-    flush( true );           // nothing to evaluate: send everything, then
-    wait();                  // wait for mail or for the end
+    f_out.flush( true );     // nothing to evaluate: send everything, then
+    f_sh.mail.wait( f_id );  // wait for mail or for the end
     }
    }
 
@@ -670,71 +677,16 @@ class DistributedBranchAndBound {
     push( std::move( it ) );
     return;
     }
-   auto & o = v_out[ dst ];
-   o.push_back( Msg{ std::move( it.node ) , it.bound , it.depth } );
+   f_out.push( dst , Msg{ std::move( it.node ) , it.bound , it.depth } );
    ++f_st.sent;
-   if( o.size() >= f_a.f_options.batch )
-    post( dst , false );
-   }
-
-  // sends the outbox of dst, waiting for the lock if block; true if sent
-  bool post( unsigned dst , bool block ) {
-   auto & o = v_out[ dst ];
-   const auto k = std::int64_t( o.size() );
-   f_sh.pending.fetch_add( k );
-   if( block )
-    f_sh.channels.send( f_id , dst , o );
-   else
-    if( ! f_sh.channels.try_send( f_id , dst , o ) ) {
-     f_sh.pending.fetch_sub( k );
-     return( false );
-     }
-   ++f_st.messages;
-   return( true );
-   }
-
-  // sends the non-empty outboxes
-  void flush( bool block ) {
-   for( unsigned d = 0 ; d < f_sh.p ; ++d )
-    if( ! v_out[ d ].empty() )
-     post( d , block );
-   }
-
-  // waits until mail arrives or the search ends
-  void wait( void ) {
-   f_sh.idle.fetch_add( 1 );
-   Backoff backoff;
-   for( ;; ) {
-    if( f_sh.done.load( std::memory_order_acquire ) )
-     return;
-    if( f_sh.channels.has_mail( f_id ) ) {
-     f_sh.idle.fetch_sub( 1 );     // first leave idle, then change epoch
-     f_sh.epoch.fetch_add( 1 );
-     return;
-     }
-    const auto e = f_sh.epoch.load();
-    if( ( f_sh.idle.load() == f_sh.p ) && ( f_sh.pending.load() == 0 ) &&
-        ( f_sh.epoch.load() == e ) ) {
-     f_sh.done.store( true , std::memory_order_release );
-     return;
-     }
-    backoff.pause();
-    }
    }
 
   // true if a limit is reached, which ends the search
   bool stop( void ) {
-   const BBOptions & o = f_a.f_options;
-   const bool nodes = o.node_limit &&
-                      ( f_sh.evaluated.load() >= o.node_limit );
-   const bool time = ( o.time_limit > 0 ) &&
-                     ( f_clock.seconds() >= o.time_limit );
-   if( ! ( nodes || time ) )
+   if( ! detail::bb_limit( f_a.f_options , f_sh.evaluated.load() , f_clock ,
+                           f_sh.limit , f_sh.time ) )
     return( false );
-   if( time )
-    f_sh.time.store( true );
-   f_sh.limit.store( true );
-   f_sh.done.store( true , std::memory_order_release );
+   f_sh.mail.stop();
    return( true );
    }
 
@@ -745,7 +697,7 @@ class DistributedBranchAndBound {
   BBQueue< Node > f_q;                          // its open nodes
   std::optional< Item > f_dive;                 // the node of its dive
   std::mt19937_64 f_gen;                        // the random owners
-  std::vector< std::vector< Msg > > v_out;      // its outboxes
+  typename Mailbox::Outboxes f_out;             // its outboxes
   std::vector< Msg > v_in;                      // the last inbox received
   std::vector< Item > v_kids;                   // the children of a node
   BBStats f_st;                                 // its counters

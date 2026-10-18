@@ -87,8 +87,7 @@ class SPAStar {
 
  explicit SPAStar( const D & domain , const ParallelOptions & options = {} )
   : f_domain( domain ) , f_options( options ) {
-  if( f_options.threads == 0 )
-   f_options.threads = 1;
+  f_options.normalize();
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/

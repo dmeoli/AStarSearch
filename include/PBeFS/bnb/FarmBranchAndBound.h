@@ -35,9 +35,9 @@
 
 #include <vector>
 
-#include <ff/ff.hpp>
-
 #include "PBeFS/bnb/ParallelBranchAndBound.h"
+
+#include "PBeFS/core/FastFlowRuntime.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
@@ -87,10 +87,7 @@ class FarmBranchAndBound {
  explicit FarmBranchAndBound( const P & problem ,
                               const ParallelBBOptions & options = {} )
   : f_p( problem ) , f_options( options ) {
-  if( f_options.threads == 0 )
-   f_options.threads = 1;
-  if( f_options.batch == 0 )
-   f_options.batch = 1;
+  f_options.normalize();
   }
 
 /*-------------------------------- SOLVING ---------------------------------*/
@@ -130,17 +127,8 @@ class FarmBranchAndBound {
    workers.push_back( std::move( x ) );
    }
   ff::ff_Farm< Task > farm( std::move( workers ) , master );
-  farm.remove_collector();
-  farm.wrap_around();
-  farm.set_scheduling_ondemand();
-  // with fewer CPUs than master + workers, a spinning thread may hold the
-  // CPU that the one it waits for needs: the threads have to block instead
-  const unsigned cpus = available_cpus();
-  if( cpus && ( cpus < f_options.threads + 1 ) )
-   farm.blocking_mode( true );
-  if( farm.run_and_wait_end() < 0 )
-   throw( std::runtime_error( "FarmBranchAndBound::solve: the farm "
-                              "failed" ) );
+  run_feedback_farm( farm , f_options.threads ,
+                     "FarmBranchAndBound::solve" );
 
   SolutionT sol;
   detail::BBFrontier< Node > & fr = master.f_fr;    // left open by a limit
@@ -229,15 +217,8 @@ class FarmBranchAndBound {
 
   // stops the dispatch if a limit is reached
   void check_limits( void ) {
-   const BBOptions & o = f_a.f_options;
-   const bool nodes = o.node_limit &&
-                      ( f_sh.evaluated.load() >= o.node_limit );
-   const bool time = ( o.time_limit > 0 ) &&
-                     ( f_sh.clock.seconds() >= o.time_limit );
-   if( time )
-    f_sh.time.store( true );
-   if( nodes || time )
-    f_sh.limit.store( true );
+   ( void ) detail::bb_limit( f_a.f_options , f_sh.evaluated.load() ,
+                              f_sh.clock , f_sh.limit , f_sh.time );
    }
 
   // sends tasks while there are nodes and free workers

@@ -35,6 +35,7 @@ PBeFSH   = $(PBeFSSDR)/include/PBeFS/PBeFS.h \
            $(PBeFSSDR)/include/PBeFS/bnb.h \
            $(PBeFSSDR)/include/PBeFS/core.h \
            $(PBeFSSDR)/include/PBeFS/core/SearchUtils.h \
+           $(PBeFSSDR)/include/PBeFS/core/ThreadMailbox.h \
            $(PBeFSSDR)/include/PBeFS/core/ThreadRuntime.h \
            $(PBeFSSDR)/include/PBeFS/astar/AStar.h \
            $(PBeFSSDR)/include/PBeFS/astar/Distribution.h \

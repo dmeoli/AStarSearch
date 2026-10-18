@@ -106,8 +106,7 @@ class PASE {
 
  explicit PASE( const D & domain , const PASEOptions & options = {} )
   : f_domain( domain ) , f_options( options ) {
-  if( f_options.threads == 0 )
-   f_options.threads = 1;
+  f_options.normalize();
   if( f_options.eps < 1 )
    f_options.eps = 1;
   }

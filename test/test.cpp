@@ -45,6 +45,8 @@
 
 #include <fstream>
 
+#include <initializer_list>
+
 #include <iostream>
 
 #include <limits>
@@ -64,6 +66,8 @@
 #include <type_traits>
 
 #include <unordered_map>
+
+#include <utility>
 
 #include <vector>
 
@@ -295,6 +299,50 @@ static int romania_distance( City from )
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the 8-puzzle with the blank moved from the goal through the given cells,
+// each next to the one before
+
+static EightPuzzle::board_type walk8( std::initializer_list< int > cells )
+{
+ auto b = EightPuzzle::korf_goal();
+ int z = 0;
+ for( int c : cells ) {
+  std::swap( b[ z ] , b[ c ] );
+  z = c;
+  }
+ return( b );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the limit cases of a search of the 8-puzzle, run by solve( d , o ) for
+// the domain d and the options o: the initial state that is the goal (cost
+// 0, a path of one state), a state one move away, and a node limit of 5 on
+// a state farther than that
+
+template< class O , class Solve >
+static void check_astar_edges( const O & base , Solve && solve ,
+                               const std::string & name )
+{
+ const EightPuzzle g( EightPuzzle::korf_goal() );
+ const auto s0 = solve( g , base );
+ check( s0.solved() && ( s0.cost == 0 ) && ( s0.path.size() == 1 ) ,
+        name + " initial state that is the goal" );
+
+ const EightPuzzle one( walk8( { 1 } ) );
+ const auto s1 = solve( one , base );
+ check( s1.solved() && ( s1.cost == 1 ) && ( s1.path.size() == 2 ) ,
+        name + " one move" );
+
+ const EightPuzzle far( walk8( { 1 , 2 , 5 , 4 , 3 , 6 , 7 , 8 , 5 , 2 , 1 ,
+                                 0 , 3 , 4 , 7 , 6 } ) );
+ O o = base;
+ o.node_limit = 5;
+ const auto sl = solve( far , o );
+ check( ( astar( far ).cost >= 6 ) && ( sl.status == Status::node_limit ) &&
+        sl.path.empty() , name + " node limit of 5" );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // the distance from the goal of every state of the 8-puzzle, by a
 // breadth-first search from the goal (the moves are reversible)
 
@@ -351,6 +399,12 @@ static void test_astar( const std::string & data )
   check_solution( d , astar( d , OpenKind::heap ) , ki.cost ,
                   "A* heap, Korf #" + std::to_string( id ) );
   }
+
+ for( OpenKind k : { OpenKind::buckets , OpenKind::heap } )
+  check_astar_edges( SearchOptions() , [ k ]( const EightPuzzle & d ,
+                                              const SearchOptions & o ) {
+   return( astar( d , k , o ) );
+   } , std::string( "A* " ) + ( k == OpenKind::heap ? "heap" : "buckets" ) );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -509,6 +563,24 @@ static void test_hda( const std::string & data )
                                 Runtime >( rg , rz , o ).solve() , 418 ,
                   "HDA*[Z] Romania, p " + std::to_string( p ) );
   }
+
+ const auto hda = []( const EightPuzzle & d , const ParallelOptions & o ) {
+  const ZobristDistribution< EightPuzzle > z( d );
+  return( HDAStar< EightPuzzle , decltype( z ) , Runtime >( d , z , o )
+          .solve() );
+  };
+ ParallelOptions o;
+ o.threads = 8;
+ check_astar_edges( o , hda , "HDA* 8 workers" );
+ o.threads = 0;
+ o.batch = 0;
+ o.flush_period = 0;
+ check_astar_edges( o , hda , "HDA* parameters 0" );
+ o = ParallelOptions();
+ o.threads = 3;
+ o.batch = 1;
+ o.flush_period = 1;
+ check_astar_edges( o , hda , "HDA* batches of 1" );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -533,6 +605,15 @@ static void test_spa( const std::string & data )
                         .solve() , 418 ,
                   "SPA* Romania, p " + std::to_string( p ) );
   }
+
+ const auto spa = []( const EightPuzzle & d , const ParallelOptions & o ) {
+  return( SPAStar< EightPuzzle , Runtime >( d , o ).solve() );
+  };
+ ParallelOptions o;
+ o.threads = 8;
+ check_astar_edges( o , spa , "SPA* 8 workers" );
+ o.threads = 0;
+ check_astar_edges( o , spa , "SPA* 0 workers" );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -575,6 +656,14 @@ static void test_pbnf( const std::string & data )
  o.threads = 4;
  check( SafePBNF< Grid< 4 > , Runtime >( g , o ).solve().status ==
         Status::unsolvable , "SafePBNF proves the wall unsolvable" );
+
+ const auto pbnf = []( const EightPuzzle & d , const PBNFOptions & x ) {
+  return( SafePBNF< EightPuzzle , Runtime >( d , x ).solve() );
+  };
+ o.threads = 8;
+ check_astar_edges( o , pbnf , "SafePBNF 8 workers" );
+ o.threads = 0;
+ check_astar_edges( o , pbnf , "SafePBNF 0 workers" );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -624,6 +713,23 @@ static void test_pase( const std::string & data )
          ( se.cost <= 1.5 * ki.cost ) ,
          "PA*SE eps 1.5 within the bound, p " + std::to_string( p ) );
   }
+
+ GridMap m( 40 , 40 );
+ for( int y = 0 ; y < 40 ; ++y )
+  m.set_cost( 20 , y , 0 );
+ const Grid< 8 > g( m , 0 , 0 , 39 , 39 );
+ PASEOptions o;
+ o.threads = 4;
+ check( PASE< Grid< 8 > , Runtime >( g , o ).solve().status ==
+        Status::unsolvable , "PA*SE proves the wall unsolvable" );
+
+ const auto pase = []( const EightPuzzle & d , const PASEOptions & x ) {
+  return( PASE< EightPuzzle , Runtime >( d , x ).solve() );
+  };
+ o.threads = 8;
+ check_astar_edges( o , pase , "PA*SE 8 workers" );
+ o.threads = 0;
+ check_astar_edges( o , pase , "PA*SE 0 workers" );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -667,6 +773,16 @@ static void test_farm( const std::string & data )
  o.node_limit = 300;
  check( FarmAStar< Grid< 4 > >( g , o ).solve().status ==
         Status::node_limit , "FarmAStar stops at the node limit" );
+
+ const auto farm = []( const EightPuzzle & d , const ParallelOptions & x ) {
+  return( FarmAStar< EightPuzzle >( d , x ).solve() );
+  };
+ o = ParallelOptions();
+ o.threads = 8;
+ check_astar_edges( o , farm , "FarmAStar 8 workers" );
+ o.threads = 0;
+ o.batch = 0;
+ check_astar_edges( o , farm , "FarmAStar parameters 0" );
  }
 
 #endif
@@ -718,6 +834,16 @@ static void test_mpi( const std::string & data )
  const ZobristDistribution< FifteenPuzzle > z( d );
  check( HDAStarMPI< FifteenPuzzle , decltype( z ) >( d , z , lo ).solve()
          .status == Status::node_limit , "MPI HDA* stops at the node limit" );
+
+ const auto hda = []( const EightPuzzle & e , const ParallelOptions & x ) {
+  const ZobristDistribution< EightPuzzle > ez( e );
+  return( HDAStarMPI< EightPuzzle , decltype( ez ) >( e , ez , x ).solve() );
+  };
+ ParallelOptions o;
+ check_astar_edges( o , hda , "MPI HDA*" );
+ o.batch = 0;
+ o.flush_period = 0;
+ check_astar_edges( o , hda , "MPI HDA* parameters 0" );
  }
 
 #endif
@@ -1090,9 +1216,118 @@ struct Fork {
  };  // end( struct( Fork ) )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// a root that is infeasible
+
+struct NoRoot {
+
+ using node_type = int;
+
+ static constexpr Sense sense = Sense::minimize;
+
+ node_type root( void ) const { return( 0 ); }
+
+ Evaluation evaluate( node_type & ) const {
+  Evaluation e;
+  e.infeasible = true;
+  return( e );
+  }
+
+ template< class F >
+ void branch( const node_type & , F && ) const {}
+
+ };  // end( struct( NoRoot ) )
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// a root solved without branching: its bound is its feasible value, 5
+
+struct Leaf {
+
+ using node_type = int;
+
+ static constexpr Sense sense = Sense::maximize;
+
+ node_type root( void ) const { return( 0 ); }
+
+ Evaluation evaluate( node_type & ) const {
+  Evaluation e;
+  e.bound = 5;
+  e.feasible = 5;
+  return( e );
+  }
+
+ template< class F >
+ void branch( const node_type & , F && ) const {}
+
+ };  // end( struct( Leaf ) )
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the limit cases of a B&B solved by run( q , o ) for the problem q and the
+// options o: a root that is infeasible, a root solved without branching,
+// the tree of Fork, and, on the knapsack kp, an initial incumbent better
+// than the optimum (which nothing improves), an absolute tolerance, a time
+// limit that is reached at once, a node limit of 1, and plunging with the
+// dive going always and never
+
+template< class O , class Run >
+static void check_bb_edges( const Knapsack & kp , const O & base , Run && run ,
+                            const std::string & name )
+{
+ const double opt = double( kp.optimum() );
+
+ const auto n = run( NoRoot{} , base );
+ check( ( n.status == BBStatus::infeasible ) && ! n.node && ! n.feasible() ,
+        name + " infeasible root" );
+
+ const auto l = run( Leaf{} , base );
+ check( ( l.status == BBStatus::optimal ) && ( l.value == 5 ) &&
+        ( l.bound == 5 ) && ( l.gap == 0 ) && ( l.stats.evaluated == 1 ) ,
+        name + " root solved without branching" );
+
+ const auto f = run( Fork{} , base );
+ check( ( f.status == BBStatus::optimal ) && ( f.value == 1 ) &&
+        ( f.bound == 1 ) , name + " fork" );
+
+ O o = base;
+ o.incumbent = opt + 1;
+ const auto z = run( kp , o );
+ check( ( z.status == BBStatus::optimal ) && ( z.value == opt + 1 ) &&
+        ! z.node && ( z.bound >= opt + 1 - 1e-9 ) ,
+        name + " initial incumbent better than the optimum" );
+
+ o = base;
+ o.abs_gap = 0.05 * opt;
+ const auto a = run( kp , o );
+ check( ( a.status == BBStatus::optimal ) &&
+        ( a.value >= opt - o.abs_gap - 1e-9 ) && ( a.bound >= opt - 1e-9 ) &&
+        ( a.gap <= o.abs_gap + 1e-9 ) , name + " absolute tolerance" );
+
+ o = base;
+ o.time_limit = 1e-12;
+ const auto t = run( kp , o );
+ check( ( t.status == BBStatus::time_limit ) && ( t.bound >= opt - 1e-9 ) &&
+        ( ! t.feasible() || ( t.value <= opt ) ) , name + " time limit" );
+
+ o = base;
+ o.node_limit = 1;
+ const auto one = run( kp , o );
+ check( ( one.status == BBStatus::node_limit ) &&
+        ( one.stats.evaluated >= 1 ) && ( one.bound >= opt - 1e-9 ) ,
+        name + " node limit of 1" );
+
+ for( double g : { 0.0 , 1.0 } ) {
+  o = base;
+  o.selection = Selection::plunging;
+  o.plunge_gap = g;
+  const auto p = run( kp , o );
+  check( ( p.status == BBStatus::optimal ) && ( p.value == opt ) ,
+         name + " plunging with plunge_gap " + std::to_string( g ) );
+  }
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // the sequential B&B on the knapsack against the dynamic program, with
 // every selection, in both senses, with a relative tolerance, with an
-// initial incumbent and with a node limit, and its leaves
+// initial incumbent and with a node limit, its leaves, and its limit cases
 
 static void test_bb( const std::string & )
 {
@@ -1158,6 +1393,11 @@ static void test_bb( const std::string & )
                      { 1 , int( BBLeafKind::feasible ) } ,
                      { 2 , int( BBLeafKind::pruned ) } } ) ,
         "B&B leaves without children" );
+
+ check_bb_edges( knapsacks().front() , BBOptions() ,
+                 []( const auto & q , const BBOptions & x ) {
+                  return( branch_and_bound( q , x ) );
+                  } , "B&B" );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -1166,7 +1406,8 @@ static void test_bb( const std::string & )
 
 template< int K , class Runtime , class Q >
 static auto bb_parallel( const Q & q , const ParallelBBOptions & o ,
-                         std::optional< Leaves > seeds = std::nullopt )
+                         std::optional< std::vector< BBLeaf<
+                          typename Q::node_type > > > seeds = std::nullopt )
 {
  const auto solve = [ & ]( const auto & b ) {
   return( seeds ? b.solve( std::move( *seeds ) ) : b.solve() );
@@ -1186,7 +1427,8 @@ static auto bb_parallel( const Q & q , const ParallelBBOptions & o ,
 // a parallel B&B on the knapsack against the dynamic program, with 1 to 8
 // workers and every selection, in both senses (the minimization has no
 // hash( n ), and hence random owners), with a relative tolerance and with
-// a node limit, and its leaves
+// a node limit, its leaves, and its limit cases with 8 workers (more than
+// the nodes of the small trees) and with the parameters at 0, which mean 1
 
 template< int K , class Runtime >
 static void test_bb_parallel( const std::string & )
@@ -1242,6 +1484,21 @@ static void test_bb_parallel( const std::string & )
     } , name + tag + " selection " + std::to_string( int( sel ) ) );
    }
   }
+
+ const auto run = []( const auto & q , const ParallelBBOptions & x ) {
+  return( bb_parallel< K , Runtime >( q , x ) );
+  };
+ ParallelBBOptions o;
+ o.threads = 8;
+ check_bb_edges( knapsacks().front() , o , run , name + " 8 workers" );
+ o.threads = 0;
+ o.batch = 0;
+ o.flush_period = 0;
+ check_bb_edges( knapsacks().front() , o , run , name + " parameters 0" );
+ o = ParallelBBOptions();
+ o.threads = 3;
+ o.batch = 1;
+ check_bb_edges( knapsacks().front() , o , run , name + " batches of 1" );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -1249,8 +1506,8 @@ static void test_bb_parallel( const std::string & )
 
 // the B&B over MPI on the knapsack against the dynamic program, with every
 // selection, in both senses (the minimization has no hash( n ), and hence
-// random owners), with a relative tolerance and with a node limit, and its
-// leaves
+// random owners), with a relative tolerance and with a node limit, its
+// leaves, and its limit cases
 
 static void test_bb_mpi( const std::string & )
 {
@@ -1298,6 +1555,16 @@ static void test_bb_mpi( const std::string & )
   o.batch = 4;
   check_frontier( kp , o , solve , "MPI B&B" + tag , true );
   }
+
+ const auto run = []( const auto & q , const ParallelBBOptions & x ) {
+  return( MPIBranchAndBoundSearch< std::decay_t< decltype( q ) > >( q , x )
+          .solve() );
+  };
+ ParallelBBOptions o;
+ check_bb_edges( knapsacks().front() , o , run , "MPI B&B" );
+ o.batch = 0;
+ o.flush_period = 0;
+ check_bb_edges( knapsacks().front() , o , run , "MPI B&B parameters 0" );
  }
 
 #endif

@@ -3,8 +3,9 @@
 /*--------------------------------------------------------------------------*/
 /** @file
  * Header file that includes the core of PBeFS, i.e., what does not depend
- * on the kind of search: the helpers [see SearchUtils.h] and the runtime of
- * the C++ threads [see ThreadRuntime.h]. The other runtimes need an
+ * on the kind of search: the helpers [see SearchUtils.h], the runtime of
+ * the C++ threads [see ThreadRuntime.h], and the messages between the
+ * workers with the detection of the end [see ThreadMailbox.h]. The other runtimes need an
  * external library, and they are included one by one: OpenMPRuntime.h
  * (OpenMP), FastFlowRuntime.h (FastFlow) and MPIMailbox.h (MPI).
  *
@@ -27,6 +28,8 @@
 /*--------------------------------------------------------------------------*/
 
 #include "PBeFS/core/SearchUtils.h"
+
+#include "PBeFS/core/ThreadMailbox.h"
 
 #include "PBeFS/core/ThreadRuntime.h"
 
