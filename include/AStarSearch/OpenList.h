@@ -37,6 +37,8 @@
 
 #include <vector>
 
+#include "SearchUtils.h"
+
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -269,9 +271,11 @@ class BucketOpenList {
 
  OpenEntry< NodeT > pop( void ) {
   Layer & l = front();
-  OpenEntry< NodeT > e{ l.by_g[ l.top_g ].back() ,
-                        static_cast< Cost >( l.top_g ) };
-  l.by_g[ l.top_g ].pop_back();
+  std::vector< NodeT * > & v = l.by_g[ l.top_g ];
+  OpenEntry< NodeT > e{ v.back() , static_cast< Cost >( l.top_g ) };
+  v.pop_back();
+  if( v.size() > prefetch_distance )         // a node popped soon after
+   prefetch( v[ v.size() - 1 - prefetch_distance ] );
   --f_size;
   if( --l.count == 0 ) {
    std::vector< std::vector< NodeT * > >().swap( l.by_g );
@@ -313,6 +317,9 @@ class BucketOpenList {
   }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+ /// how far from the back of a list the node prefetched at a pop is
+ static constexpr std::size_t prefetch_distance = 4;
 
  std::vector< Layer > v_layers;                    ///< the layers, by f
  std::size_t f_min_f;              ///< no non-empty layer comes before

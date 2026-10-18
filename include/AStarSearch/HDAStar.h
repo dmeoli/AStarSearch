@@ -433,7 +433,10 @@ class HDAStar {
      return;
     const unsigned dst = f_dist.owner( t , p );
     if( dst == f_id ) {
-     insert( Msg{ t , g , ht , n } , f_a.f_domain.hash( t ) );
+     const std::uint64_t h = f_a.f_domain.hash( t );
+     f_table.prefetch( h );
+     v_local.push_back( Msg{ t , g , ht , n } );
+     v_lhash.push_back( h );
      return;
      }
     auto & o = v_out[ dst ];
@@ -442,6 +445,11 @@ class HDAStar {
     if( o.size() >= f_a.f_options.batch )
      post( dst , false );
     } );
+   // the successors kept by the worker, whose slots are now prefetched
+   for( std::size_t k = 0 ; k < v_local.size() ; ++k )
+    insert( v_local[ k ] , v_lhash[ k ] );
+   v_local.clear();
+   v_lhash.clear();
    }
 
   // adds the node of m, whose state has hash h, to OPEN, unless it is a
@@ -523,6 +531,8 @@ class HDAStar {
   std::vector< std::vector< Msg > > v_out;      // its outboxes
   std::vector< Msg > v_in;                      // the last inbox received
   std::vector< std::uint64_t > v_hash;          // the hashes of v_in
+  std::vector< Msg > v_local;          // the successors kept by the worker
+  std::vector< std::uint64_t > v_lhash;        // the hashes of v_local
   SearchStats f_st;                             // its counters
   };
 
