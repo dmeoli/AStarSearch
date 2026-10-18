@@ -125,10 +125,21 @@ int main( int argc , char * argv[] )
     std::cout << ( NQueens::row( s , c ) == r ? " Q" : " ." );
    std::cout << std::endl;
    }
-  std::cout << "expanded:  " << sol.stats.expanded << std::endl
+  // the placement checked apart from the Domain: n queens, no two on a
+  // row or on a diagonal
+  bool valid = NQueens::queens( s ) == n;
+  for( int a = 0 ; valid && ( a < n ) ; ++a )
+   for( int b = a + 1 ; b < n ; ++b ) {
+    const int d = NQueens::row( s , b ) - NQueens::row( s , a );
+    if( ( d == 0 ) || ( d == b - a ) || ( d == a - b ) )
+     valid = false;
+    }
+  std::cout << ( valid ? "a valid placement of " : "NOT a placement of " )
+            << n << " queens" << std::endl
+            << "expanded:  " << sol.stats.expanded << std::endl
             << "generated: " << sol.stats.generated << std::endl
             << "seconds:   " << sol.stats.seconds << std::endl;
-  return( 0 );
+  return( valid ? 0 : 1 );
   }
  catch( std::exception & e ) {
   std::cerr << "NQueens: " << e.what() << std::endl;

@@ -3,7 +3,8 @@
 ##############################################################################
 #                                                                            #
 #   makefile of the examples of AStarSearch: 8Puzzle, 15Puzzle, FindPath,    #
-#   RouteFinding, NQueens, WaterJugs and TravelingSalesman                   #
+#   RouteFinding, NQueens, WaterJugs, MissionariesCannibals, VacuumWorld     #
+#   and TravelingSalesman                                                    #
 #                                                                            #
 #                                Donato Meoli                                #
 #                         Dipartimento di Informatica                        #
@@ -16,6 +17,7 @@ DIR = .
 
 # the programs
 NAMES = 8Puzzle 15Puzzle FindPath RouteFinding NQueens WaterJugs \
+        MissionariesCannibals VacuumWorld \
         TravelingSalesman
 
 # common flags

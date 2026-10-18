@@ -11,7 +11,7 @@
 # --------------------------------------------------------------------------- #
 
 foreach (example 8Puzzle 15Puzzle FindPath RouteFinding NQueens WaterJugs
-        TravelingSalesman)
+        TravelingSalesman MissionariesCannibals VacuumWorld)
     add_executable(${example} ${example}.cpp)
     target_link_libraries(${example} PRIVATE ${modNamespace}::${modName})
 endforeach ()
@@ -45,7 +45,8 @@ if (ASTAR_BUILD_TESTS AND BUILD_TESTING)
     example_test(route-bucharest "Bucharest \\(418 km\\)" RouteFinding)
     example_test(route-lugoj-neamt "Neamt \\(910 km\\)" RouteFinding Lugoj
             Neamt)
-    example_test(nqueens-8 "expanded" NQueens 8)
+    example_test(nqueens-8 "a valid placement of 8 queens" NQueens 8)
+    example_test(nqueens-15 "a valid placement of 15 queens" NQueens 15)
     example_test(nqueens-3 "no placement of 3 queens" NQueens 3)
     example_test(waterjugs-book "moves: +3\n" WaterJugs)
     example_test(waterjugs-5-3 "moves: +6\n" WaterJugs 4 5 3)
@@ -54,6 +55,16 @@ if (ASTAR_BUILD_TESTS AND BUILD_TESTING)
     example_test(tsp-14 "" TravelingSalesman 14 3)
     example_test(findpath-4 "cost: +94\n" FindPath)
     example_test(findpath-8 "cost: +76\\.6" FindPath -8)
+    example_test(missionaries-book "crossings: +11\n" MissionariesCannibals)
+    example_test(missionaries-5-5-3 "crossings: +11\n" MissionariesCannibals
+            5 5 3)
+    example_test(missionaries-2-2-2 "crossings: +5\n" MissionariesCannibals
+            2 2 2)
+    example_test(missionaries-none "no crossing of 4 missionaries"
+            MissionariesCannibals 4 4 2)
+    example_test(vacuum-book "actions: +3\n" VacuumWorld)
+    example_test(vacuum-10 "actions: +19\n" VacuumWorld 10)
+    example_test(vacuum-10-mixed "actions: +19\n" VacuumWorld 10 4 1011001101)
 endif ()
 
 # --------------------------------------------------------------------------- #

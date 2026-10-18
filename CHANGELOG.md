@@ -44,9 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SearchOptions::expected_nodes, which sizes the closed list at the start
 - the examples after Russell and Norvig, whose results are tests: the
   8-puzzle (with the heuristics h1, h2 and that of Nilsson), the 15-puzzle,
-  pathfinding on a weighted grid, route finding in Romania, the n queens,
-  the water jugs and the travelling salesman with the bound of the minimum
-  spanning tree
+  pathfinding on a weighted grid, route finding in Romania, the vacuum
+  world, the n queens (with the placement checked apart from the search),
+  the missionaries and cannibals, the water jugs and the travelling
+  salesman with the bound of the minimum spanning tree
 - the tester, with the instances of Korf, the grids and the explicit
   graphs, under AddressSanitizer, UndefinedBehaviorSanitizer and
   ThreadSanitizer in the CI

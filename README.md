@@ -236,31 +236,36 @@ reference, the latter to `build-docs/api`.
 ## The examples and the benchmark
 
 The programs in `examples` are, for the most part, the search problems of
-chapter 3 of Russell and Norvig [[13]](#ref-13), each one with its own `Domain` written
-in the file. `8Puzzle` solves the instance of figure 3.28 of the book, or an
-instance at a given distance from the goal, with the number of misplaced
-tiles (h1), the Manhattan distance (h2) or the sequence score of Nilsson [[8]](#ref-8),
-which is not admissible; with `-t` it repeats the comparison of h1 and h2 of
-figure 3.29 (nodes generated and effective branching factor). `15Puzzle`
-solves an instance of Korf, sequentially or with HDA* (`-t <threads>`);
-`RouteFinding` finds a road between two cities of the map of Romania of the
-book; `FindPath` finds a path on a weighted grid, random or read from a
-Moving AI map, and draws it. The last three come from the exercises of the
-book: `NQueens` places n queens with the incremental formulation of section
-3.2.1, `WaterJugs` measures a quantity of water with jugs (exercise 3.6(d)),
+chapter 3 of Russell and Norvig [[13]](#ref-13), each one with its own
+`Domain` written in the file. `8Puzzle` solves the instance of figure 3.28
+of the book, or an instance at a given distance from the goal, with the
+number of misplaced tiles (h1), the Manhattan distance (h2) or the sequence
+score of Nilsson [[8]](#ref-8), which is not admissible; with `-t` it
+repeats the comparison of h1 and h2 of figure 3.29 (nodes generated and
+effective branching factor). `15Puzzle` solves an instance of Korf,
+sequentially or with HDA* (`-t <threads>`); `RouteFinding` finds a road
+between two cities of the map of Romania of the book; `FindPath` finds a
+path on a weighted grid, random or read from a Moving AI map, and draws it.
+`VacuumWorld` is the vacuum world of section 3.2.1 on a row of n cells, and
+`NQueens` places n queens with the incremental formulation of the same
+section, checking the placement apart from the search. The last three come
+from the exercises of the book: `MissionariesCannibals` carries m
+missionaries and c cannibals over a river with a boat of b seats (exercise
+3.9), `WaterJugs` measures a quantity of water with jugs (exercise 3.6(d)),
 and `TravelingSalesman` solves the traveling salesperson problem with the
 minimum spanning tree heuristic (exercise 3.30), checking the tour against
-the dynamic program of Held and Karp [[14]](#ref-14). Each run with a known answer (e.g.,
-the 26 moves of figure 3.28 and the 418 km from Arad to Bucharest) is also
-a test of `ctest`, labelled `example`. In `tools`,
-`AStarBench` runs any search, runtime and distribution of the library on
-the 100 instances of Korf (`data/15-puzzle/korf100.txt`), on the 8-puzzle
-and on the grids, and it prints a line of CSV per run with the cost, the
-counters and the time; `AStarBenchMPI` is its MPI counterpart, to be started
-with `mpirun`. If the environment variable `ASTAR_PIN` is set, the i-th
-worker is pinned to the i-th CPU of the affinity mask of the process (as
-given, e.g., by `numactl --physcpubind` or `taskset`). On machines with
-several sockets this is usually needed for the timings to be repeatable.
+the dynamic program of Held and Karp [[14]](#ref-14). Each run with a known
+answer (e.g., the 26 moves of figure 3.28, the 418 km from Arad to Bucharest
+and the 11 crossings of the missionaries) is also a test of `ctest`,
+labelled `example`. In `tools`, `AStarBench` runs any search, runtime and
+distribution of the library on the 100 instances of Korf
+(`data/15-puzzle/korf100.txt`), on the 8-puzzle and on the grids, and it
+prints a line of CSV per run with the cost, the counters and the time;
+`AStarBenchMPI` is its MPI counterpart, to be started with `mpirun`. If the
+environment variable `ASTAR_PIN` is set, the i-th worker is pinned to the
+i-th CPU of the affinity mask of the process (as given, e.g., by `numactl
+--physcpubind` or `taskset`). On machines with several sockets this is
+usually needed for the timings to be repeatable.
 
 ## Testing
 
