@@ -227,6 +227,39 @@ worker is pinned to the i-th CPU of the affinity mask of the process (as
 given, e.g., by `numactl --physcpubind` or `taskset`). On machines with
 several sockets this is usually needed for the timings to be repeatable.
 
+## Testing
+
+The tester `test/test.cpp` checks every search against references that do
+not come from the library, i.e., a breadth-first search of the whole state
+space of the 8-puzzle, the optimal costs of the 100 instances of Korf
+[[7]](#ref-7), Dijkstra's algorithm on random grids and the distances on the
+map of Romania; for each solution it checks both the cost and the path,
+which must start at the initial state, end at a goal and be made of edges
+of the `Domain` whose costs add up to the one reported. Its cases (the
+sequential A*, then each parallel search on each runtime with 1 to 8
+workers, and HDA* over MPI with 1, 2 and 4 processes) are listed in
+`test/tests.txt`, which both CMake and the makefiles read, and the case
+`registry` checks that the list and the cases of the tester are the same;
+`ctest` runs them together with the examples of known answer. The CI runs
+them on Linux with gcc and clang, on macOS and on Windows (without
+FastFlow and MPI there), with the makefiles, and once more under
+AddressSanitizer with UndefinedBehaviorSanitizer and under ThreadSanitizer,
+which checks the synchronization of the searches in shared memory; the
+line coverage of the tests is on Coveralls.
+
+## Citing
+
+If AStarSearch is useful in a publication, one can cite it as
+
+```bibtex
+@software{AStarSearch,
+  author = {Meoli, Donato},
+  title  = {{AStarSearch}: sequential and parallel {A*} search},
+  url    = {https://github.com/dmeoli/AStarSearch},
+  year   = {2026}
+}
+```
+
 ## License
 
 This software is released under the MIT License (see the file
