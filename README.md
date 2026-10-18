@@ -153,7 +153,8 @@ does not depend on it, i.e., the grid maps, the random tables of Zobrist
 hashing, the measures of a search and the parts that depend on the
 operating system. Without CMake, the `makefile` in the root builds the
 objects and exports them together with the include directive and the list
-of the headers, in the style of the modules of SMS++; in `examples`, `test`
+of the headers, so that the makefile of a program that uses the library
+needs only to include it; in `examples`, `test`
 and `tools` a makefile builds the corresponding programs, and in `test` the
 targets `check` and `check_mpi` also run the tests.
 

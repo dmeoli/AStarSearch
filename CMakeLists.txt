@@ -23,7 +23,7 @@
 cmake_minimum_required(VERSION 3.21)
 cmake_policy(VERSION 3.15)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeriveVersion.cmake)
-smspp_derive_version(ASTAR_VERSION)
+astar_derive_version(ASTAR_VERSION)
 
 project(AStarSearch
         VERSION ${ASTAR_VERSION}
