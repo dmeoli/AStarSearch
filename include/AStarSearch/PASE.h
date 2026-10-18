@@ -188,6 +188,9 @@ class PASE {
 
   Worker( const PASE & a , Shared & s ) : f_a( a ) , f_sh( s ) {}
 
+  // the states of OPEN that a worker examines for a safe one
+  static constexpr std::size_t c_candidates = 64;
+
   // true if s is independent of t: g( s ) - g( t ) <= eps h( t , s ), up
   // to a relative 1e-9 for real costs, whose rounding would otherwise make
   // the goal dependent on the states with f = f( goal )
@@ -203,14 +206,18 @@ class PASE {
    }
 
   // true if s is safe to expand (lock held): independent of BE and of the
-  // states of OPEN before it
+  // states of OPEN with a smaller f, which come first in OPEN, as in the
+  // definition of safety of the paper; the states of equal f are not
+  // checked, so that a layer of equal f costs a scan of BE per state
+  // instead of a scan of the layer
   bool safe( const NodeT * s ) const {
    for( const NodeT * t : f_sh.be )
     if( ! independent( s , t ) )
      return( false );
+   const Cost fs = s->f();
    for( const auto & k : f_sh.open ) {
     const NodeT * t = std::get< 2 >( k );
-    if( t == s )
+    if( ! ( t->f() < fs ) )
      break;
     if( ! independent( s , t ) )
      return( false );
@@ -223,13 +230,20 @@ class PASE {
    std::vector< std::tuple< State , Cost , Cost > > succ;
    std::unique_lock< Lock > guard( f_sh.lock );
    while( ! f_sh.done ) {
-    // the safe state of smallest f, if any
+    // the safe state of smallest f among the first c_candidates of OPEN,
+    // if any: further down, each candidate would have to be checked
+    // against the larger and larger part of OPEN before it, under the lock;
+    // with BE empty the first state is safe, and the search goes on
     NodeT * s = nullptr;
-    for( const auto & k : f_sh.open )
+    std::size_t n = 0;
+    for( const auto & k : f_sh.open ) {
+     if( n++ == c_candidates )
+      break;
      if( safe( std::get< 2 >( k ) ) ) {
       s = std::get< 2 >( k );
       break;
       }
+     }
     if( ! s ) {
      if( f_sh.open.empty() && f_sh.be.empty() ) {
       f_sh.done = true;
