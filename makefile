@@ -57,7 +57,8 @@ AStOMPH = $(AStSDR)/include/AStarSearch/OpenMPRuntime.h
 AStFFH  = $(AStSDR)/include/AStarSearch/FastFlowRuntime.h \
           $(AStSDR)/include/AStarSearch/FarmAStar.h \
           $(AStSDR)/include/AStarSearch/FarmBranchAndBound.h
-AStMPIH = $(AStSDR)/include/AStarSearch/HDAStarMPI.h
+AStMPIH = $(AStSDR)/include/AStarSearch/HDAStarMPI.h \
+          $(AStSDR)/include/AStarSearch/MPIBranchAndBound.h
 
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

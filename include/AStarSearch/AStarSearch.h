@@ -4,7 +4,8 @@
 /** @file
  * Header file that includes all of AStarSearch save the parts that need an
  * external library: OpenMPRuntime.h (OpenMP), FastFlowRuntime.h,
- * FarmAStar.h and FarmBranchAndBound.h (FastFlow), HDAStarMPI.h (MPI).
+ * FarmAStar.h and FarmBranchAndBound.h (FastFlow), HDAStarMPI.h and
+ * MPIBranchAndBound.h (MPI).
  *
  * The library searches a Domain [see Domain.h], i.e., an implicit graph
  * given by an initial state, a goal test and an expansion procedure, for a
@@ -30,8 +31,9 @@
  * Branch-and-Bound, of a problem satisfying the concept BranchAndBound: the
  * sequential BranchAndBoundSearch [see BranchAndBound.h], and
  * SharedBranchAndBound and DistributedBranchAndBound on the C++ threads,
- * OpenMP or FastFlow [see ParallelBranchAndBound.h], and FarmBranchAndBound
- * on a FastFlow farm [see FarmBranchAndBound.h].
+ * OpenMP or FastFlow [see ParallelBranchAndBound.h], FarmBranchAndBound
+ * on a FastFlow farm [see FarmBranchAndBound.h] and MPIBranchAndBoundSearch
+ * with one MPI process per worker [see MPIBranchAndBound.h].
  *
  * The domains of the library are SlidingTile (the (W x H - 1)-puzzle),
  * SequenceScore (the same with the heuristic of Nilsson), Grid (pathfinding

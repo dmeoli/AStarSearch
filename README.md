@@ -135,8 +135,8 @@ when a node or time limit stops it.
 The search is sequential (`branch_and_bound( p , options )`), parallel
 with a queue shared by the workers as in SPA* (`SharedBranchAndBound`) or
 with a queue per worker and the children sent to their owners as in HDA*
-(`DistributedBranchAndBound`), both on the three runtimes, or master-worker
-on a FastFlow farm (`FarmBranchAndBound`). SafePBNF and PA*SE have no
+(`DistributedBranchAndBound`), both on the three runtimes, master-worker on a FastFlow farm (`FarmBranchAndBound`), or with one MPI
+process per worker (`MPIBranchAndBoundSearch`, whose nodes travel as bytes). SafePBNF and PA*SE have no
 counterpart, since they exist to handle duplicates and re-expansions,
 which a tree does not have. Its design is discussed in
 [docs/branch-and-bound.md](docs/branch-and-bound.md), and the tests check

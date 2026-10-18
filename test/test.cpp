@@ -20,7 +20,7 @@
  *     test bb | bb-shared-thread | bb-dist-thread
  *     test bb-shared-openmp | bb-dist-openmp
  *     test bb-shared-fastflow | bb-dist-fastflow | bb-farm-fastflow
- *     test mpi                      (under mpiexec)
+ *     test mpi | bb-mpi             (under mpiexec)
  *     test registry <tests.txt>
  *
  * The cases are listed in test/tests.txt, which CMake and the makefile
@@ -40,6 +40,8 @@
 #include <algorithm>
 
 #include <cmath>
+
+#include <cstring>
 
 #include <fstream>
 
@@ -97,6 +99,7 @@
 
 #ifdef ASTAR_HAS_MPI
  #include "AStarSearch/HDAStarMPI.h"
+ #include "AStarSearch/MPIBranchAndBound.h"
 #endif
 
 /*--------------------------------------------------------------------------*/
@@ -793,6 +796,31 @@ struct Knapsack {
   return( double( greedy( n ) ) );
   }
 
+ // the bytes of a node, for MPI
+ void serialize( const node_type & n , std::vector< char > & out ) const {
+  const auto put = [ & ]( const auto & v ) {
+   const auto * b = reinterpret_cast< const char * >( & v );
+   out.insert( out.end() , b , b + sizeof( v ) );
+   };
+  put( n.k );
+  put( n.weight );
+  put( n.profit );
+  out.insert( out.end() , n.x.begin() , n.x.end() );
+  }
+
+ node_type deserialize( const char * & in ) const {
+  node_type n;
+  std::memcpy( & n.k , in , sizeof( n.k ) );
+  in += sizeof( n.k );
+  std::memcpy( & n.weight , in , sizeof( n.weight ) );
+  in += sizeof( n.weight );
+  std::memcpy( & n.profit , in , sizeof( n.profit ) );
+  in += sizeof( n.profit );
+  n.x.assign( in , in + p.size() );
+  in += p.size();
+  return( n );
+  }
+
  // the optimal value, by the dynamic program on the capacity
  long optimum( void ) const {
   std::vector< long > best( std::size_t( cap ) + 1 , 0 );
@@ -874,6 +902,14 @@ struct MinKnapsack {
   kp.branch( n , [ & ]( node_type && c , double e ) {
    f( std::move( c ) , - e );
    } );
+  }
+
+ void serialize( const node_type & n , std::vector< char > & out ) const {
+  kp.serialize( n , out );
+  }
+
+ node_type deserialize( const char * & in ) const {
+  return( kp.deserialize( in ) );
   }
 
  };  // end( struct( MinKnapsack ) )
@@ -1012,6 +1048,52 @@ static void test_bb_parallel( const std::string & )
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+#ifdef ASTAR_HAS_MPI
+
+// the B&B over MPI on the knapsack against the dynamic program, with every
+// selection, in both senses (the minimization has no hash( n ), and hence
+// random owners), with a relative tolerance and with a node limit
+
+static void test_bb_mpi( const std::string & )
+{
+ int i = 0;
+ for( const Knapsack & kp : knapsacks() ) {
+  const double opt = double( kp.optimum() );
+  const std::string tag = " knapsack " + std::to_string( i++ );
+  for( Selection sel : { Selection::best_first , Selection::depth_first ,
+                         Selection::best_estimate , Selection::plunging } ) {
+   ParallelBBOptions o;
+   o.selection = sel;
+   o.batch = 4;
+   const auto s = MPIBranchAndBoundSearch< Knapsack >( kp , o ).solve();
+   check( ( s.status == BBStatus::optimal ) && ( s.value == opt ) &&
+          s.node && kp.check( *s.node , s.value ) && ( s.gap <= 1e-9 ) ,
+          "MPI B&B" + tag + " selection " + std::to_string( int( sel ) ) );
+   }
+
+  ParallelBBOptions o;
+  const MinKnapsack mk{ kp };
+  const auto m = MPIBranchAndBoundSearch< MinKnapsack >( mk , o ).solve();
+  check( ( m.status == BBStatus::optimal ) && ( m.value == - opt ) &&
+         m.node && kp.check( *m.node , - m.value ) ,
+         "MPI B&B minimization" + tag );
+
+  o.rel_gap = 0.05;
+  const auto r = MPIBranchAndBoundSearch< Knapsack >( kp , o ).solve();
+  check( ( r.status == BBStatus::optimal ) &&
+         ( r.value >= opt * 0.95 - 1e-9 ) && ( r.bound >= opt - 1e-9 ) ,
+         "MPI B&B within a relative gap of 5%" + tag );
+
+  o = ParallelBBOptions();
+  o.node_limit = 3;
+  const auto l = MPIBranchAndBoundSearch< Knapsack >( kp , o ).solve();
+  check( ( l.status == BBStatus::node_limit ) && ( l.bound >= opt - 1e-9 ) ,
+         "MPI B&B node limit" + tag );
+  }
+ }
+
+#endif
+
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // the cases of the tester, each with the runtime it needs ("-" if none):
 // test/tests.txt lists the same ones [see test_registry()]
@@ -1055,6 +1137,7 @@ static const std::vector< Case > cases = {
  #endif
  #ifdef ASTAR_HAS_MPI
   { "mpi" , "mpi" , test_mpi } ,
+  { "bb-mpi" , "mpi" , test_bb_mpi } ,
  #endif
  };
 
@@ -1112,10 +1195,20 @@ int main( int argc , char * argv[] )
   }
  const std::string what = argv[ 1 ];
  const std::string data = argc > 2 ? argv[ 2 ] : "../data";
+ const auto c = std::find_if( cases.begin() , cases.end() ,
+                              [ & ]( const Case & x ) {
+                               return( what == x.name );
+                               } );
+ if( ( what != "registry" ) && ( c == cases.end() ) ) {
+  std::cerr << "unknown case " << what << std::endl;
+  return( 2 );
+  }
+ const bool mpi = ( c != cases.end() ) &&
+                  ( std::string( c->needs ) == "mpi" );
 
  #ifdef ASTAR_HAS_MPI
   int rank = 0;
-  if( what == "mpi" ) {
+  if( mpi ) {
    MPI_Init( & argc , & argv );
    MPI_Comm_rank( MPI_COMM_WORLD , & rank );
    quiet = rank != 0;
@@ -1125,17 +1218,8 @@ int main( int argc , char * argv[] )
  try {
   if( what == "registry" )
    test_registry( data );
-  else {
-   const auto c = std::find_if( cases.begin() , cases.end() ,
-                                [ & ]( const Case & x ) {
-                                 return( what == x.name );
-                                 } );
-   if( c == cases.end() ) {
-    std::cerr << "unknown case " << what << std::endl;
-    return( 2 );
-    }
+  else
    c->run( data );
-   }
   }
  catch( std::exception & e ) {
   std::cout << "FAILED: exception " << e.what() << std::endl;
@@ -1143,7 +1227,7 @@ int main( int argc , char * argv[] )
   }
 
  #ifdef ASTAR_HAS_MPI
-  if( what == "mpi" ) {
+  if( mpi ) {
    int all = 0;
    MPI_Allreduce( & failures , & all , 1 , MPI_INT , MPI_SUM ,
                   MPI_COMM_WORLD );

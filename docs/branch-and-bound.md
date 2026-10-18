@@ -122,8 +122,12 @@ detection of duplicates or the avoidance of re-expansions do not.
 
 Over MPI, the distributed search has to send the nodes between processes,
 and it therefore requires P to provide `serialize( n , out )` and
-`deserialize( in )` (or a trivially copyable node); this is the part of
-the extension that we leave for last.
+`deserialize( in )` (or a trivially copyable node). Each process then has a
+queue, the incumbent value is sent to all the processes when it improves,
+the node of the incumbent stays on the process that found it until the end
+(when it is sent to all), and the end is detected with the method of
+Mattern, as in HDA* over MPI; the node limit is split evenly among the
+processes.
 
 ## The interface for a B&B solver
 
@@ -144,6 +148,8 @@ estimate. Such a solver then calls one of
     auto s = SharedBranchAndBound< P , Runtime >( problem , options ).solve();
     auto s = DistributedBranchAndBound< P , Runtime >( problem , options )
               .solve();
+    auto s = FarmBranchAndBound< P >( problem , options ).solve();
+    auto s = MPIBranchAndBoundSearch< P >( problem , options , comm ).solve();
 
 and reads the incumbent, the bound and the gap from the `Solution`. In
 the options one gives the policy, the tolerances, the initial incumbent

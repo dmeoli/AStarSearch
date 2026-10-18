@@ -47,3 +47,4 @@ farm-fastflow       fastflow  the master-worker farm, 1 to 8 workers
 
 # the distributed search
 mpi                 mpi       HDA* over MPI, every deterministic distribution
+bb-mpi              mpi       the B&B over MPI on the 0-1 knapsack
