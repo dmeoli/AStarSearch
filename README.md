@@ -226,10 +226,14 @@ several sockets this is usually needed for the timings to be repeatable.
 
 This software is released under the MIT License (see the file
 [LICENSE](LICENSE)). Its sequential version was first written for the
-course of Knowledge Engineering of prof. Floriana Esposito at the University
-of Bari, and the parallel ones for the course of Parallel and Distributed
-Systems of prof. Marco Danelutto and prof. Massimo Torquati at the
-University of Pisa.
+course of Knowledge Engineering of prof.
+[Floriana Esposito](https://www.uniba.it/it/docenti/esposito-floriana) at
+the University of Bari, and the parallel ones for the course of Parallel and
+Distributed Systems of prof.
+[Marco Danelutto](https://www.unipi.it/en/about-us/organisation/people/marco-danelutto-4278-en/)
+and prof.
+[Massimo Torquati](https://www.unipi.it/en/about-us/organisation/people/massimo-torquati-78079-en/)
+at the University of Pisa.
 
 ## References
 
