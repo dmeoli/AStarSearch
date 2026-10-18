@@ -39,6 +39,8 @@
 
 #include <type_traits>
 
+#include "AStarSearch/SearchUtils.h"
+
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -46,23 +48,6 @@
 /// namespace for the A* search library
 namespace AStar_di_unipi_it
 {
-
-/*--------------------------------------------------------------------------*/
-/*------------------------------- FUNCTIONS --------------------------------*/
-/*--------------------------------------------------------------------------*/
-/// finaliser of splitmix64, a bijective mixing of the bits of a word
-/** Bijective mixing of the 64 bits of \p x, used to turn a packed state
- * representation into a well spread hash value for the closed list. */
-
-[[nodiscard]] constexpr std::uint64_t mix64( std::uint64_t x ) noexcept
-{
- x ^= x >> 30;
- x *= 0xbf58476d1ce4e5b9ULL;
- x ^= x >> 27;
- x *= 0x94d049bb133111ebULL;
- x ^= x >> 31;
- return( x );
- }
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------------- CONCEPTS --------------------------------*/

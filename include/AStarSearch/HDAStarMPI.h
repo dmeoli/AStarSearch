@@ -25,8 +25,6 @@
 
 #include <cstring>
 
-#include <list>
-
 #include <stdexcept>
 
 #include <type_traits>
@@ -36,6 +34,8 @@
 #include <mpi.h>
 
 #include "AStarSearch/HDAStar.h"
+
+#include "AStarSearch/MPIMailbox.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
@@ -59,16 +59,11 @@ namespace AStar_di_unipi_it
  *
  * A node records the state of its parent instead of a pointer. A process
  * that improves the incumbent sends its cost to all the others. The end is
- * detected with the four-counter method of Mattern (Distributed Computing,
- * 1987): a process joins a wave, an MPI_Iallreduce of the numbers of
- * messages it has sent and received, only when it has no node with f below
- * the incumbent and no batch to send; two consecutive waves with equal
- * totals, sent = received, prove that no message is in transit and every
- * process is waiting, and since every process sees the same totals they all
- * stop at the same wave. All the messages are counted, so that none is left
- * unreceived at the end. If a process reaches the node limit, it tells the
- * others, and all of them stop expanding and only drain the messages until
- * the end is detected.
+ * detected with the four-counter method of Mattern [see MPIMailbox], a
+ * process joining a wave only when it has no node with f below the
+ * incumbent and no batch to send. If a process reaches the node limit, it
+ * tells the others, and all of them stop expanding and only drain the
+ * messages until the end is detected.
  *
  * MPI must be initialized by the caller, with at least MPI_THREAD_FUNNELED
  * if the Domain uses threads; all the processes of the communicator call
@@ -156,7 +151,8 @@ class HDAStarMPI {
  struct Process {
 
   explicit Process( const HDAStarMPI & a )
-   : f_a( a ) , f_comm( a.f_comm ) , f_dist( a.f_dist ) {
+   : f_a( a ) , f_comm( a.f_comm ) , f_mail( a.f_comm ) ,
+     f_dist( a.f_dist ) {
    MPI_Comm_rank( f_comm , & f_rank );
    int np;
    MPI_Comm_size( f_comm , & np );
@@ -171,12 +167,10 @@ class HDAStarMPI {
     insert( Msg{ s0 , Cost( 0 ) , Cost( f_a.f_domain.heuristic( s0 ) ) , s0 ,
                  false } , f_a.f_domain.hash( s0 ) );
 
-   long long prev[ 2 ] = { -1 , -1 } , mine[ 2 ] , tot[ 2 ];
-   MPI_Request wave = MPI_REQUEST_NULL;
    unsigned since_flush = 0;
    for( ;; ) {
     receive();
-    test_sends();
+    f_mail.test();
 
     if( MNode * n = next() ) {
      expand( n );
@@ -189,38 +183,16 @@ class HDAStarMPI {
       f_abort = f_limit_hit = true;
       for( unsigned q = 0 ; q < f_p ; ++q )
        if( q != unsigned( f_rank ) )
-        post_small( q , c_tag_abort , Cost( 0 ) );
+        f_mail.post_value( q , c_tag_abort , Cost( 0 ) );
       }
      }
     else
      flush();
 
-    if( wave != MPI_REQUEST_NULL ) {
-     int done = 0;
-     MPI_Test( & wave , & done , MPI_STATUS_IGNORE );
-     if( done ) {
-      if( ( tot[ 0 ] == tot[ 1 ] ) && ( tot[ 0 ] == prev[ 0 ] ) &&
-          ( tot[ 1 ] == prev[ 1 ] ) )
-       break;
-      prev[ 0 ] = tot[ 0 ];
-      prev[ 1 ] = tot[ 1 ];
-      }
-     }
-    if( ( wave == MPI_REQUEST_NULL ) && idle() ) {
-     mine[ 0 ] = f_sent;
-     mine[ 1 ] = f_received;
-     MPI_Iallreduce( mine , tot , 2 , MPI_LONG_LONG , MPI_SUM , f_comm ,
-                     & wave );
-     }
+    if( f_mail.ended( idle() ) )
+     break;
     }
-
-   if( ! v_pending.empty() ) {           // all received: they complete
-    std::vector< MPI_Request > r;
-    for( auto & b : v_pending )
-     r.push_back( b.req );
-    MPI_Waitall( int( r.size() ) , r.data() , MPI_STATUSES_IGNORE );
-    v_pending.clear();
-    }
+   f_mail.finish();                      // all received: they complete
    }
 
   // true if there is nothing to expand and nothing to send
@@ -272,7 +244,7 @@ class HDAStarMPI {
      f_goal = n;
      for( unsigned q = 0 ; q < f_p ; ++q )
       if( q != unsigned( f_rank ) )
-       post_small( q , c_tag_incumbent , n->g );
+       f_mail.post_value( q , c_tag_incumbent , n->g );
      }
     return;
     }
@@ -321,33 +293,14 @@ class HDAStarMPI {
      ++f_st.duplicates;
    }
 
-  // a buffer of a non-blocking send, kept until the send completes
-  struct Pending {
-   std::vector< char > bytes;
-   MPI_Request req;
-   };
-
   // sends the outbox of dst
   void post( unsigned dst ) {
    auto & o = v_out[ dst ];
-   Pending & b = v_pending.emplace_back();
-   b.bytes.resize( o.size() * sizeof( Msg ) );
-   std::memcpy( b.bytes.data() , o.data() , b.bytes.size() );
+   std::vector< char > b( o.size() * sizeof( Msg ) );
+   std::memcpy( b.data() , o.data() , b.size() );
    o.clear();
-   MPI_Isend( b.bytes.data() , int( b.bytes.size() ) , MPI_BYTE , int( dst ) ,
-              c_tag_work , f_comm , & b.req );
-   ++f_sent;
+   f_mail.post( dst , c_tag_work , b );
    ++f_st.messages;
-   }
-
-  // sends a cost to dst with tag
-  void post_small( unsigned dst , int tag , Cost c ) {
-   Pending & b = v_pending.emplace_back();
-   b.bytes.resize( sizeof( Cost ) );
-   std::memcpy( b.bytes.data() , & c , sizeof( Cost ) );
-   MPI_Isend( b.bytes.data() , int( b.bytes.size() ) , MPI_BYTE , int( dst ) ,
-              tag , f_comm , & b.req );
-   ++f_sent;
    }
 
   // sends the non-empty outboxes
@@ -357,34 +310,12 @@ class HDAStarMPI {
      post( d );
    }
 
-  // frees the buffers of the completed sends
-  void test_sends( void ) {
-   for( auto it = v_pending.begin() ; it != v_pending.end() ; ) {
-    int done = 0;
-    MPI_Test( & it->req , & done , MPI_STATUS_IGNORE );
-    if( done )
-     it = v_pending.erase( it );
-    else
-     ++it;
-    }
-   }
-
   // receives and processes all the messages that have arrived
   void receive( void ) {
-   for( ;; ) {
-    int flag = 0;
-    MPI_Status st;
-    MPI_Iprobe( MPI_ANY_SOURCE , MPI_ANY_TAG , f_comm , & flag , & st );
-    if( ! flag )
-     return;
-    int bytes = 0;
-    MPI_Get_count( & st , MPI_BYTE , & bytes );
-    v_in.resize( std::size_t( bytes ) );
-    MPI_Recv( v_in.data() , bytes , MPI_BYTE , st.MPI_SOURCE , st.MPI_TAG ,
-              f_comm , MPI_STATUS_IGNORE );
-    ++f_received;
-    if( st.MPI_TAG == c_tag_work ) {
-     const std::size_t k = std::size_t( bytes ) / sizeof( Msg );
+   int tag;
+   while( f_mail.receive( v_in , tag ) ) {
+    if( tag == c_tag_work ) {
+     const std::size_t k = v_in.size() / sizeof( Msg );
      v_msg.resize( k );
      v_hash.resize( k );
      std::memcpy( v_msg.data() , v_in.data() , k * sizeof( Msg ) );
@@ -396,14 +327,13 @@ class HDAStarMPI {
       insert( v_msg[ i ] , v_hash[ i ] );
      }
     else
-     if( st.MPI_TAG == c_tag_incumbent ) {
-      Cost c;
-      std::memcpy( & c , v_in.data() , sizeof( Cost ) );
+     if( tag == c_tag_incumbent ) {
+      const Cost c = MPIMailbox::value< Cost >( v_in );
       if( c < f_incumbent )
        f_incumbent = c;
       }
      else
-      if( st.MPI_TAG == c_tag_abort )
+      if( tag == c_tag_abort )
        f_abort = true;
     }
    }
@@ -477,6 +407,7 @@ class HDAStarMPI {
 
   const HDAStarMPI & f_a;                       // the search
   MPI_Comm f_comm;                              // the communicator
+  MPIMailbox f_mail;                            // its messages
   int f_rank;                                   // this process
   unsigned f_p;                                 // the number of processes
   Dist f_dist;                                  // the distribution
@@ -484,14 +415,11 @@ class HDAStarMPI {
   NodeTable< MNode > f_table;                   // its CLOSED list
   Open_t f_open;                                // its OPEN list
   std::vector< std::vector< Msg > > v_out;      // its outboxes
-  std::list< Pending > v_pending;               // its sends in progress
   std::vector< char > v_in;                     // the last message
   std::vector< Msg > v_msg;                     // its nodes
   std::vector< std::uint64_t > v_hash;          // their hashes
   Cost f_incumbent = infinite_cost< Cost >();   // the best cost known
   MNode * f_goal = nullptr;                     // its best goal
-  long long f_sent = 0;                         // messages sent
-  long long f_received = 0;                     // messages received
   bool f_abort = false;                         // stop expanding
   bool f_limit_hit = false;                     // it hit the node limit
   SearchStats f_st;                             // its counters

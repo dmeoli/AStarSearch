@@ -2,8 +2,9 @@
 /*------------------------------ File Node.h -------------------------------*/
 /*--------------------------------------------------------------------------*/
 /** @file
- * Header file for the class template Node, a node of the search graph, and
- * for the class template NodePool, the arena the nodes are allocated from.
+ * Header file for the class template Node, a node of the search graph, for
+ * the class template NodePool, the arena the nodes are allocated from, and
+ * for the infinite cost and the path to a goal.
  *
  * \author Donato Meoli \n
  *         Dipartimento di Informatica \n
@@ -23,7 +24,11 @@
 /*-------------------------------- INCLUDES --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+#include <algorithm>
+
 #include <cstddef>
+
+#include <limits>
 
 #include <memory>
 
@@ -140,6 +145,35 @@ class NodePool {
  std::vector< NodeT * > v_chunks;                          ///< the chunks
 
  };  // end( class( NodePool ) )
+
+/*--------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------*/
+/*------------------------------- FUNCTIONS --------------------------------*/
+/*--------------------------------------------------------------------------*/
+/// the largest value of a cost type, used as "no incumbent yet"
+
+template< class Cost >
+[[nodiscard]] constexpr Cost infinite_cost( void ) noexcept
+{
+ if constexpr( std::numeric_limits< Cost >::has_infinity )
+  return( std::numeric_limits< Cost >::infinity() );
+ else
+  return( std::numeric_limits< Cost >::max() );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/// the states from the root to goal, following the parent pointers
+
+template< class NodeT >
+[[nodiscard]] auto trace_path( const NodeT * goal )
+{
+ std::vector< decltype( goal->state ) > path;
+ for( const NodeT * n = goal ; n ; n = n->parent )
+  path.push_back( n->state );
+ std::reverse( path.begin() , path.end() );
+ return( path );
+ }
 
 /*--------------------------------------------------------------------------*/
 

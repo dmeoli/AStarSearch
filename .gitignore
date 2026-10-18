@@ -30,3 +30,6 @@ tools/AStarBenchMPI
 
 # the library built by the GNUmakefile
 lib
+
+# the design notes, kept local
+docs/design.md

@@ -49,7 +49,8 @@ AStH   = $(AStSDR)/include/AStarSearch/AStar.h \
          $(AStSDR)/include/AStarSearch/SequenceScore.h \
          $(AStSDR)/include/AStarSearch/SlowDomain.h \
          $(AStSDR)/include/AStarSearch/SlidingTile.h \
-         $(AStSDR)/include/AStarSearch/Solution.h
+         $(AStSDR)/include/AStarSearch/Solution.h \
+         $(AStSDR)/include/AStarSearch/ThreadRuntime.h
 
 # the headers of the optional runtimes- - - - - - - - - - - - - - - - - - - -
 
@@ -58,7 +59,8 @@ AStFFH  = $(AStSDR)/include/AStarSearch/FastFlowRuntime.h \
           $(AStSDR)/include/AStarSearch/FarmAStar.h \
           $(AStSDR)/include/AStarSearch/FarmBranchAndBound.h
 AStMPIH = $(AStSDR)/include/AStarSearch/HDAStarMPI.h \
-          $(AStSDR)/include/AStarSearch/MPIBranchAndBound.h
+          $(AStSDR)/include/AStarSearch/MPIBranchAndBound.h \
+          $(AStSDR)/include/AStarSearch/MPIMailbox.h
 
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

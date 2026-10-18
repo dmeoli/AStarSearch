@@ -39,7 +39,7 @@
 
 #include "AStarSearch/BranchAndBound.h"
 
-#include "AStarSearch/HDAStar.h"
+#include "AStarSearch/ThreadRuntime.h"
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/

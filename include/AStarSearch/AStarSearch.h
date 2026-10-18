@@ -18,8 +18,9 @@
  *
  * - HDAStar, Hash Distributed A*, in which a distribution function
  *   [see Distribution.h] assigns every state to the worker that owns it,
- *   on the C++ threads, OpenMP or FastFlow [see HDAStar.h], and HDAStarMPI
- *   on the processes of MPI [see HDAStarMPI.h];
+ *   on the C++ threads [see ThreadRuntime.h], OpenMP or FastFlow [see
+ *   HDAStar.h], and HDAStarMPI on the processes of MPI [see HDAStarMPI.h
+ *   and MPIMailbox.h];
  *
  * - SafePBNF, Parallel Best-NBlock-First search [see SafePBNF.h];
  *
@@ -85,6 +86,8 @@
 #include "AStarSearch/SlidingTile.h"
 
 #include "AStarSearch/SlowDomain.h"
+
+#include "AStarSearch/ThreadRuntime.h"
 
 /*--------------------------------------------------------------------------*/
 

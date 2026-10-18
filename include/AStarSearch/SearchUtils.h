@@ -3,9 +3,9 @@
 /*--------------------------------------------------------------------------*/
 /** @file
  * Header file for the small helpers shared by the searches: a stopwatch,
- * the infinite cost, the reconstruction of a path from parent pointers, a
- * spin-then-yield backoff for the waiting workers, the placement of the
- * workers on the CPUs and an allocator asking for huge pages.
+ * a mixing of the bits of a word, a spin-then-yield backoff for the waiting
+ * workers, the placement of the workers on the CPUs, the random numbers of
+ * the workers and an allocator asking for huge pages.
  *
  * \author Donato Meoli \n
  *         Dipartimento di Informatica \n
@@ -62,28 +62,19 @@ namespace AStar_di_unipi_it
 inline constexpr std::size_t cache_line = 64;
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-/// the largest value of a cost type, used as "no incumbent yet"
+/// finaliser of splitmix64, a bijective mixing of the bits of a word
+/** Bijective mixing of the 64 bits of \p x, used to turn a packed
+ * representation (say, of a state or of a node) into a well spread hash
+ * value. */
 
-template< class Cost >
-[[nodiscard]] constexpr Cost infinite_cost( void ) noexcept
+[[nodiscard]] constexpr std::uint64_t mix64( std::uint64_t x ) noexcept
 {
- if constexpr( std::numeric_limits< Cost >::has_infinity )
-  return( std::numeric_limits< Cost >::infinity() );
- else
-  return( std::numeric_limits< Cost >::max() );
- }
-
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-/// the states from the root to goal, following the parent pointers
-
-template< class NodeT >
-[[nodiscard]] auto trace_path( const NodeT * goal )
-{
- std::vector< decltype( goal->state ) > path;
- for( const NodeT * n = goal ; n ; n = n->parent )
-  path.push_back( n->state );
- std::reverse( path.begin() , path.end() );
- return( path );
+ x ^= x >> 30;
+ x *= 0xbf58476d1ce4e5b9ULL;
+ x ^= x >> 27;
+ x *= 0x94d049bb133111ebULL;
+ x ^= x >> 31;
+ return( x );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
