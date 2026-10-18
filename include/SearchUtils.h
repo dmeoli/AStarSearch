@@ -152,7 +152,7 @@ inline void prefetch( const void * p ) noexcept
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 /// a real number in [ 0 , 1 ) from the next word of a 64-bit generator
-/** The distributions of <random> are not the same on every standard
+/** The distributions of \<random\> are not the same on every standard
  * library, while the words of std::mt19937_64 are; this and random_below()
  * draw from those words directly, so that a seed gives the same instance on
  * every platform. */

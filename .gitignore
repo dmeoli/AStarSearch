@@ -5,6 +5,9 @@ cmake-build-*
 # CMake build directories
 build
 
+# the documentation built by doxygen
+build-docs
+
 # the programs built by the makefiles
 examples/8Puzzle
 examples/15Puzzle

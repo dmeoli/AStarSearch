@@ -6,7 +6,7 @@
 #    macOS and Windows, with the makefiles on Linux, and on Linux once more   #
 #    under AddressSanitizer + UndefinedBehaviorSanitizer and under            #
 #    ThreadSanitizer, which checks the synchronization of the shared-memory   #
-#    searches.                                                                #
+#    searches, and in Debug with the line coverage sent to Coveralls.         #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
@@ -114,6 +114,40 @@ jobs:
         run: >
           ctest --test-dir build -L AStarSearch --output-on-failure
           ${{ matrix.tests }}
+
+  # the line coverage of the tests, in Debug and without the sanitizers,
+  # sent to Coveralls
+  coverage:
+    name: Linux coverage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin lcov
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-O0 -g --coverage"
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+          -DCMAKE_SHARED_LINKER_FLAGS="--coverage"
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build -L AStarSearch --output-on-failure
+      - name: Coverage
+        run: |
+          lcov --capture --directory build --output-file lcov.info \
+               --ignore-errors mismatch,inconsistent,unused,negative
+          lcov --extract lcov.info "$PWD/include/*" "$PWD/src/*" \
+               --output-file lcov.info --ignore-errors unused
+      - uses: coverallsapp/github-action@v2
+        with:
+          file: lcov.info
+          fail-on-error: false
 
   macos:
     name: macOS
