@@ -287,7 +287,10 @@ class HDAStarMPI {
     const Msg m{ t , g , ht , n->state , true };
     const unsigned dst = f_dist.owner( t , f_p );
     if( dst == unsigned( f_rank ) ) {
-     insert( m , f_a.f_domain.hash( t ) );
+     const std::uint64_t h = f_a.f_domain.hash( t );
+     f_table.prefetch( h );
+     v_local.push_back( m );
+     v_lhash.push_back( h );
      return;
      }
     v_out[ dst ].push_back( m );
@@ -295,6 +298,11 @@ class HDAStarMPI {
     if( v_out[ dst ].size() >= f_a.f_options.batch )
      post( dst );
     } );
+   // the successors kept by the process, whose slots are now prefetched
+   for( std::size_t k = 0 ; k < v_local.size() ; ++k )
+    insert( v_local[ k ] , v_lhash[ k ] );
+   v_local.clear();
+   v_lhash.clear();
    }
 
   // adds the node of m, whose state has hash h, to OPEN, unless it is a
@@ -488,6 +496,8 @@ class HDAStarMPI {
   std::vector< char > v_in;                     // the last message
   std::vector< Msg > v_msg;                     // its nodes
   std::vector< std::uint64_t > v_hash;          // their hashes
+  std::vector< Msg > v_local;         // the successors kept by the process
+  std::vector< std::uint64_t > v_lhash;        // the hashes of v_local
   Cost f_incumbent = infinite_cost< Cost >();   // the best cost known
   MNode * f_goal = nullptr;                     // its best goal
   long long f_sent = 0;                         // messages sent
