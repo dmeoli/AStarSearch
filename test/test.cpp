@@ -1204,7 +1204,7 @@ int main( int argc , char * argv[] )
   return( 2 );
   }
  [[maybe_unused]] const bool mpi = ( c != cases.end() ) &&
-                  ( std::string( c->needs ) == "mpi" );
+                                   ( std::string( c->needs ) == "mpi" );
 
  #ifdef ASTAR_HAS_MPI
   int rank = 0;
