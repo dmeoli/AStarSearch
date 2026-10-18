@@ -30,6 +30,7 @@
  *     --eps     <inflation of the independence of PA*SE>   (1)
  *     --slow    <iterations of busy work per expansion>    (0)
  *     --limit   <nodes per worker>                         (none)
+ *     --expect  <nodes expected per worker>               (unknown)
  *     --repeat  <runs of each instance>                    (1)
  *     --header  print the header line
  *
@@ -103,7 +104,7 @@ static std::map< std::string , std::string > opt = {
  { "batch" , "64" } , { "flush" , "64" } , { "open" , "buckets" } ,
  { "block" , "100" } , { "limit" , "0" } , { "repeat" , "1" } ,
  { "minexp" , "32" } , { "nblock" , "20" } , { "eps" , "1" } ,
- { "slow" , "0" } };
+ { "slow" , "0" } , { "expect" , "0" } };
 
 static int rank = 0;                   // the MPI rank (0 without MPI)
 
@@ -143,6 +144,7 @@ static ParallelOptions parallel_options( void )
  o.batch = std::stoul( opt[ "batch" ] );
  o.flush_period = unsigned( std::stoul( opt[ "flush" ] ) );
  o.node_limit = std::stoul( opt[ "limit" ] );
+ o.expected_nodes = std::stoul( opt[ "expect" ] );
  return( o );
  }
 

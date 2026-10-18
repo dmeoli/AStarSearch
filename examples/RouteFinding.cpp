@@ -139,7 +139,8 @@ int main( int argc , char * argv[] )
      km += r.km;
   std::cout << c_name[ sol.path[ k ] ] << " (" << km << " km)" << std::endl;
   }
- std::cout << "expanded: " << sol.stats.expanded << std::endl;
+ std::cout << "expanded: " << sol.stats.expanded << std::endl
+           << "seconds:  " << sol.stats.seconds << std::endl;
  return( 0 );
  }
 

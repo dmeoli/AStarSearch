@@ -219,7 +219,8 @@ static int report( const S & sol )
   }
  std::cout << "moves:     " << sol.cost << std::endl
            << "expanded:  " << sol.stats.expanded << std::endl
-           << "generated: " << sol.stats.generated << std::endl;
+           << "generated: " << sol.stats.generated << std::endl
+           << "seconds:   " << sol.stats.seconds << std::endl;
  return( 0 );
  }
 

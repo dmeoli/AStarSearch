@@ -129,8 +129,8 @@ void pin_worker( unsigned i ) noexcept;
 /** On Linux the blocks of at least 2 MB are aligned to 2 MB and handed to
  * madvise( MADV_HUGEPAGE ), which is what the transparent huge pages need
  * when the kernel gives them only on request (the "madvise" setting), and
- * the smaller ones come from std::malloc; elsewhere, every block comes from
- * ::operator new. Throws std::bad_alloc if there is no memory. */
+ * the smaller ones, and every block elsewhere, come from std::malloc.
+ * Throws std::bad_alloc if there is no memory. */
 
 [[nodiscard]] void * huge_allocate( std::size_t bytes );
 

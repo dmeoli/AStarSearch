@@ -126,7 +126,8 @@ int main( int argc , char * argv[] )
    std::cout << std::endl;
    }
   std::cout << "expanded:  " << sol.stats.expanded << std::endl
-            << "generated: " << sol.stats.generated << std::endl;
+            << "generated: " << sol.stats.generated << std::endl
+            << "seconds:   " << sol.stats.seconds << std::endl;
   return( 0 );
   }
  catch( std::exception & e ) {

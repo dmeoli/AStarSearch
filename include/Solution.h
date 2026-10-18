@@ -117,6 +117,11 @@ struct SearchOptions {
  /// limit); in a parallel search the limit holds for each worker
  std::size_t node_limit = 0;
 
+ /// the number of nodes the search is expected to store (0 = unknown): the
+ /// closed list is sized for them at the start, instead of being doubled
+ /// (and rehashed) as it fills; in a parallel search it is per worker
+ std::size_t expected_nodes = 0;
+
  };  // end( struct( SearchOptions ) )
 
 /*--------------------------------------------------------------------------*/

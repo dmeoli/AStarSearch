@@ -201,7 +201,8 @@ int main( int argc , char * argv[] )
   const double opt = held_karp( d );
   std::cout << std::endl << "cost:       " << sol.cost << std::endl
             << "Held-Karp:  " << opt << std::endl
-            << "expanded:   " << sol.stats.expanded << std::endl;
+            << "expanded:   " << sol.stats.expanded << std::endl
+            << "seconds:    " << sol.stats.seconds << std::endl;
   if( std::abs( sol.cost - opt ) > 1e-9 * ( 1 + opt ) ) {
    std::cerr << "TravelingSalesman: the tour is not optimal" << std::endl;
    return( 1 );

@@ -6,7 +6,7 @@
  * operating system: the affinity mask of the process, the placement of the
  * workers on its CPUs and the allocation of blocks on huge pages. Where
  * the system gives no affinity mask or no huge pages, they fall back on
- * std::thread::hardware_concurrency() and on ::operator new.
+ * std::thread::hardware_concurrency() and on std::malloc.
  *
  * \author Donato Meoli \n
  *         Dipartimento di Informatica \n
@@ -122,23 +122,17 @@ void * AStar_di_unipi_it::huge_allocate( std::size_t bytes )
    madvise( p , r , MADV_HUGEPAGE );
    return( p );
    }
-  if( void * p = std::malloc( bytes ? bytes : 1 ) )
-   return( p );
-  throw( std::bad_alloc() );
- #else
-  return( ::operator new( bytes ) );
  #endif
+ if( void * p = std::malloc( bytes ? bytes : 1 ) )
+  return( p );
+ throw( std::bad_alloc() );
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
 void AStar_di_unipi_it::huge_deallocate( void * p ) noexcept
 {
- #if defined( __linux__ )
-  std::free( p );
- #else
-  ::operator delete( p );
- #endif
+ std::free( p );
  }
 
 /*--------------------------------------------------------------------------*/

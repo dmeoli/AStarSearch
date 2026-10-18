@@ -154,7 +154,8 @@ int main( int argc , char * argv[] )
    std::cout << std::endl;
    }
   std::cout << "moves:    " << sol.cost << std::endl
-            << "expanded: " << sol.stats.expanded << std::endl;
+            << "expanded: " << sol.stats.expanded << std::endl
+            << "seconds:  " << sol.stats.seconds << std::endl;
   return( 0 );
   }
  catch( std::exception & e ) {

@@ -67,6 +67,13 @@ class NodeTable {
 
  public:
 
+ /// the number of slots that holds n nodes without growing
+
+ [[nodiscard]] static std::size_t slots_for( std::size_t n ) noexcept {
+  return( n / 7 * 10 + 16 );
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// constructor, taking the initial number of slots
 
  explicit NodeTable( std::size_t capacity = 1024 ) : f_size( 0 ) {

@@ -96,7 +96,8 @@ static int solve( GridMap m , int sx , int sy , int gx , int gy )
   std::cout << r << std::endl;
  std::cout << "moves:    " << sol.path.size() - 1 << std::endl
            << "cost:     " << sol.cost << std::endl
-           << "expanded: " << sol.stats.expanded << std::endl;
+           << "expanded: " << sol.stats.expanded << std::endl
+           << "seconds:  " << sol.stats.seconds << std::endl;
  return( 0 );
  }
 
