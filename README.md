@@ -1,4 +1,4 @@
-# AStarSearch
+# AStarSearch: sequential and parallel A* search
 
 [![CI](https://github.com/dmeoli/AStarSearch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dmeoli/AStarSearch/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/dmeoli/AStarSearch)](https://github.com/dmeoli/AStarSearch/releases)
@@ -148,8 +148,9 @@ cmake --install build --prefix <prefix>
 ```
 
 where `ASTAR_WITH_OPENMP`, `ASTAR_WITH_MPI` and `ASTAR_WITH_FASTFLOW` (all
-`ON` by default) can exclude a runtime, and `ASTAR_BUILD_EXAMPLES` and
-`ASTAR_BUILD_TOOLS` the examples and the benchmark. A CMake project then
+`ON` by default) can exclude a runtime, and `ASTAR_BUILD_TESTS`,
+`ASTAR_BUILD_EXAMPLES` and `ASTAR_BUILD_TOOLS` (`ON` only when AStarSearch
+is the top-level project) the tests, the examples and the benchmark. A CMake project then
 uses the library with
 
 ```cmake

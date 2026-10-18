@@ -44,10 +44,19 @@ get_directory_property(hasParent PARENT_DIRECTORY)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # ----- Settings ------------------------------------------------------------ #
-# This creates an ENABLE_TESTING option (default: ON) and enables the testing
-# using the ctest executable.
+# The tests, the examples and the tools are built only when AStarSearch is
+# the top-level project, not when another project adds it with
+# add_subdirectory() or FetchContent.
+option(ASTAR_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
+option(ASTAR_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
+option(ASTAR_BUILD_TOOLS "Build the benchmark tools" ${PROJECT_IS_TOP_LEVEL})
+
+# This creates the BUILD_TESTING option (default: ON) and enables the
+# testing using the ctest executable.
 # See: https://cmake.org/cmake/help/latest/manual/ctest.1.html
-include(CTest)
+if (ASTAR_BUILD_TESTS)
+    include(CTest)
+endif ()
 
 # Sets the default build type (if none was specified).
 # See: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html
@@ -59,8 +68,6 @@ include(GNUInstallDirs)
 option(ASTAR_WITH_OPENMP "Build the OpenMP runtime if OpenMP is found" ON)
 option(ASTAR_WITH_MPI "Build the MPI search if MPI is found" ON)
 option(ASTAR_WITH_FASTFLOW "Build the FastFlow runtime if found" ON)
-option(ASTAR_BUILD_EXAMPLES "Build the examples" ON)
-option(ASTAR_BUILD_TOOLS "Build the benchmark tools" ON)
 
 option(ASTAR_FETCH_FASTFLOW "Download FastFlow if it is not installed" ON)
 
@@ -196,7 +203,7 @@ if (ASTAR_BUILD_TOOLS)
     add_subdirectory(tools)
 endif ()
 
-if (BUILD_TESTING)
+if (ASTAR_BUILD_TESTS AND BUILD_TESTING)
     add_subdirectory(test)
 endif ()
 

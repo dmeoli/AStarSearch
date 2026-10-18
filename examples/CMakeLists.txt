@@ -21,7 +21,7 @@ endforeach ()
 # literature) gives, e.g., the 26 moves of figure 3.28 of Russell and Norvig
 # or the 418 km from Arad to Bucharest; TravelingSalesman checks itself
 # against the dynamic program of Held and Karp.
-if (BUILD_TESTING)
+if (ASTAR_BUILD_TESTS AND BUILD_TESTING)
     function(example_test name regex)
         add_test(NAME ${modName}.example.${name} COMMAND ${ARGN})
         set_tests_properties(${modName}.example.${name} PROPERTIES
