@@ -1,4 +1,4 @@
-# AStarSearch: sequential and parallel A* search
+# Sequential and Parallel A* Search
 
 [![CI](https://github.com/dmeoli/AStarSearch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dmeoli/AStarSearch/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/dmeoli/AStarSearch)](https://github.com/dmeoli/AStarSearch/releases)
