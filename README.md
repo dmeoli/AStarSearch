@@ -133,11 +133,14 @@ communication overhead of [[2]](#ref-2).
 
 The library needs only a C++20 compiler, together with CMake 3.21 or GNU
 make. OpenMP, MPI and FastFlow are optional, and each of them is used if it
-is found (FastFlow is a git submodule, which CMake fetches when the
-directory is empty). With CMake one has
+is found. FastFlow is header-only: CMake looks for it in `FASTFLOW_ROOT`
+(`/opt/fastflow` by default) and on the include path, and if it is not
+there downloads the commit `ASTAR_FASTFLOW_COMMIT` (unless
+`ASTAR_FETCH_FASTFLOW` is `OFF`), while the makefiles take its headers from
+`FF_ROOT` (`/opt/fastflow` by default). With CMake one has
 
 ```sh
-git clone --recurse-submodules https://github.com/dmeoli/AStarSearch.git
+git clone https://github.com/dmeoli/AStarSearch.git
 cmake -S AStarSearch -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build

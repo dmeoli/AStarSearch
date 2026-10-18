@@ -27,10 +27,8 @@ jobs:
       matrix:
         compiler: [ g++, clang++ ]
     steps:
-      # FastFlow is a submodule
+      # FastFlow is not installed: CMake downloads it
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       # Open MPI for HDAStarMPI, the OpenMP runtime of clang for the OpenMP
       # runtime (gcc has its own)
       - name: Dependencies
@@ -57,12 +55,19 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - name: Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libopenmpi-dev openmpi-bin
+      # the makefiles take FastFlow from /opt/fastflow, at the commit that
+      # CMake downloads
+      - name: FastFlow
+        run: |
+          c=$(sed -n 's/^set(ASTAR_FASTFLOW_COMMIT \([0-9a-f]*\)$/\1/p' \
+              CMakeLists.txt)
+          sudo git clone -q https://github.com/fastflow/fastflow.git \
+               /opt/fastflow
+          sudo git -C /opt/fastflow checkout -q "$c"
       - name: Examples
         run: make -C examples -j 4
       - name: Tools
@@ -92,8 +97,6 @@ jobs:
             tests: -R "thread|fastflow|limits"
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - name: Configure
         run: >
           cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -122,8 +125,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - name: Dependencies
         run: |
           sudo apt-get update
@@ -154,8 +155,6 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       # Apple clang has no OpenMP runtime of its own: the one of LLVM
       - name: Dependencies
         run: brew install open-mpi libomp

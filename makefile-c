@@ -6,7 +6,7 @@
 #                                                                            #
 #   The makefile defines internally all the external libraries required by   #
 #   the parallel runtimes of AStarSearch: the threads, OpenMP and the        #
-#   headers of FastFlow (the fastflow submodule, or $(FF_ROOT) if set).      #
+#   headers of FastFlow (in $(FF_ROOT), /opt/fastflow by default).           #
 #   MPI is not here: what includes HDAStarMPI.h is compiled with mpicxx.     #
 #   Accordingly, all necessary H, -I directives and external libraries are   #
 #   added to the corresponding ASt* macros.                                  #
@@ -35,7 +35,7 @@ include $(AStSDR)/makefile
 
 # FastFlow: its headers only, as system headers, so that their warnings
 # do not drown ours
-FF_ROOT ?= $(AStSDR)/fastflow
+FF_ROOT ?= /opt/fastflow
 
 # macros to be exported - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

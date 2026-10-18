@@ -13,8 +13,9 @@
 #        $ cmake --build <build-path> --target install                        #
 #                                                                             #
 #    The parallel runtimes are optional: OpenMP and MPI are used if found,    #
-#    FastFlow if its headers are in FASTFLOW_ROOT (the fastflow submodule by  #
-#    default); each can be turned off with the ASTAR_WITH_* options.          #
+#    FastFlow if its headers are in FASTFLOW_ROOT (/opt/fastflow by default)  #
+#    or on the include path, else it is downloaded at a fixed commit; each    #
+#    can be turned off with the ASTAR_WITH_* options.                         #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
@@ -61,8 +62,14 @@ option(ASTAR_WITH_FASTFLOW "Build the FastFlow runtime if found" ON)
 option(ASTAR_BUILD_EXAMPLES "Build the examples" ON)
 option(ASTAR_BUILD_TOOLS "Build the benchmark tools" ON)
 
-set(FASTFLOW_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/fastflow CACHE PATH
+option(ASTAR_FETCH_FASTFLOW "Download FastFlow if it is not installed" ON)
+
+set(FASTFLOW_ROOT /opt/fastflow CACHE PATH
     "Directory holding the ff/ headers of FastFlow")
+# the commit of FastFlow downloaded when it is not installed, the one the
+# CI tests
+set(ASTAR_FASTFLOW_COMMIT d476f66ab924d8d122f54b4b90aee00ef979aea8
+    CACHE STRING "The commit of FastFlow to download")
 
 # ----- Requirements -------------------------------------------------------- #
 find_package(Threads REQUIRED)
@@ -75,20 +82,27 @@ if (ASTAR_WITH_MPI)
     find_package(MPI COMPONENTS CXX)
 endif ()
 
-# FastFlow is header-only: its submodule is initialized if it is not there.
-if (ASTAR_WITH_FASTFLOW AND NOT EXISTS ${FASTFLOW_ROOT}/ff/ff.hpp AND
-        FASTFLOW_ROOT STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}/fastflow")
-    find_package(Git QUIET)
-    if (GIT_FOUND AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
-        execute_process(
-                COMMAND ${GIT_EXECUTABLE} submodule update --init fastflow
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+# FastFlow is header-only: its headers are looked for in FASTFLOW_ROOT and
+# on the include path, and if they are not there the sources of the commit
+# ASTAR_FASTFLOW_COMMIT are downloaded (its CMakeLists.txt is not used).
+set(ASTAR_HAS_FASTFLOW OFF)
+if (ASTAR_WITH_FASTFLOW)
+    find_path(FASTFLOW_INCLUDE_DIR ff/ff.hpp
+              HINTS ${FASTFLOW_ROOT} PATH_SUFFIXES include)
+    if (NOT FASTFLOW_INCLUDE_DIR AND ASTAR_FETCH_FASTFLOW)
+        include(FetchContent)
+        FetchContent_Declare(
+                fastflow
+                GIT_REPOSITORY https://github.com/fastflow/fastflow.git
+                GIT_TAG ${ASTAR_FASTFLOW_COMMIT}
+                SOURCE_SUBDIR none)
+        FetchContent_MakeAvailable(fastflow)
+        set(FASTFLOW_INCLUDE_DIR ${fastflow_SOURCE_DIR} CACHE PATH
+            "Directory holding the ff/ headers of FastFlow" FORCE)
     endif ()
-endif ()
-if (ASTAR_WITH_FASTFLOW AND EXISTS ${FASTFLOW_ROOT}/ff/ff.hpp)
-    set(ASTAR_HAS_FASTFLOW ON)
-else ()
-    set(ASTAR_HAS_FASTFLOW OFF)
+    if (FASTFLOW_INCLUDE_DIR AND EXISTS ${FASTFLOW_INCLUDE_DIR}/ff/ff.hpp)
+        set(ASTAR_HAS_FASTFLOW ON)
+    endif ()
 endif ()
 
 # ----- Configuration header ------------------------------------------------ #
@@ -157,7 +171,7 @@ if (ASTAR_HAS_FASTFLOW)
     add_library(${modName}_FastFlow INTERFACE)
     target_include_directories(
             ${modName}_FastFlow SYSTEM INTERFACE
-            $<BUILD_INTERFACE:${FASTFLOW_ROOT}>
+            $<BUILD_INTERFACE:${FASTFLOW_INCLUDE_DIR}>
             $<INSTALL_INTERFACE:include/${modNamespace}/fastflow>)
     target_link_libraries(${modName}_FastFlow INTERFACE ${modName})
     # FastFlow would pin its threads from the first core on, whatever the
@@ -197,7 +211,7 @@ install(DIRECTORY include/
 install(FILES ${PROJECT_BINARY_DIR}/${modName}Config.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${modNamespace})
 if (ASTAR_HAS_FASTFLOW)
-    install(DIRECTORY ${FASTFLOW_ROOT}/ff
+    install(DIRECTORY ${FASTFLOW_INCLUDE_DIR}/ff
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${modNamespace}/fastflow)
 endif ()
 
