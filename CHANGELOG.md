@@ -57,10 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - the build with CMake (installed package found by
   find_package(AStarSearch)) and with the makefiles; the version from the
   git tag
-- the documentation on the pages of the repository, a site of MkDocs
-  Material written from the README by docs/pages.py with the reference of
-  Doxygen (theme doxygen-awesome-css) under /api/, the line coverage on
-  Coveralls, and the release workflow
+- the documentation on the pages of the repository, a site of Sphinx with
+  the theme of Read the Docs written from the README by docs/pages.py
+  (MyST), with the API reference of Exhale and Breathe on the XML of
+  Doxygen, the line coverage on Coveralls, and the release workflow
 
 ### Changed
 

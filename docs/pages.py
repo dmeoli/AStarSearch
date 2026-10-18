@@ -2,16 +2,15 @@
 # --------------------------------------------------------------------------- #
 #    pages.py                                                                 #
 #                                                                             #
-#    Writes the pages of the site of the documentation into                   #
-#    build-docs/pages, from the README, which stays the one source of the     #
-#    text: each section of the README becomes a page, the citations [n] of    #
-#    the README point to the page of the references, the links to the files   #
-#    of the repository point to GitHub, the design note of the                #
-#    branch-and-bound becomes a page of the user guide, and the CHANGELOG     #
-#    becomes the release notes. The workflow .github/workflows/docs.yml runs  #
-#    it before mkdocs.                                                        #
+#    Writes the pages of the site of the documentation into docs/generated,   #
+#    from the README, which stays the one source of the text: each section    #
+#    of the README becomes a page, the citations [n] of the README point to   #
+#    the page of the references, the links to the files of the repository     #
+#    point to GitHub, the design note of the branch-and-bound becomes a page  #
+#    of the user guide, and the CHANGELOG becomes the release notes. The      #
+#    workflow .github/workflows/docs.yml runs it before Sphinx.               #
 #                                                                             #
-#        python3 docs/pages.py && mkdocs build                                #
+#        python3 docs/pages.py && sphinx-build -b html docs build-docs/html   #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
@@ -22,7 +21,7 @@ import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, 'build-docs', 'pages')
+OUT = os.path.join(ROOT, 'docs', 'generated')
 BLOB = 'https://github.com/dmeoli/AStarSearch/blob/main/'
 TREE = 'https://github.com/dmeoli/AStarSearch/tree/main/'
 
@@ -42,9 +41,10 @@ REFERENCES = 'user-guide/references.md'
 
 
 def links(text, page):
-    """the links of the README for the page: the citations to the page of
-    the references, the files of the repository on GitHub"""
+    """the links of the README for the page: the citations [n] to the
+    targets of the references, the files of the repository on GitHub"""
     up = '../' * page.count('/')
+    text = re.sub(r'\[\[(\d+)\]\]\(#(ref-\d+)\)', r'{ref}`[\1] <\2>`', text)
 
     def fix(m):
         target = m.group(2)
@@ -83,6 +83,9 @@ def main():
             home.append('## ' + part)
     write('index.md', links(''.join(home), 'index.md'))
     for page, text in pages.items():
+        if page == REFERENCES:          # the anchors as targets of MyST
+            text = re.sub(r'^<a id="(ref-\d+)"></a>', r'(\1)=\n', text,
+                          flags=re.M)
         write(page, links(text, page))
     note = 'user-guide/branch-and-bound-design.md'
     write(note, links(open(os.path.join(ROOT, 'docs',
