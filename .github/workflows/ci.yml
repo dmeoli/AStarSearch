@@ -74,8 +74,15 @@ jobs:
         run: make -C tools release mpi -j 2
       - name: Test
         run: |
-          make -C test check
-          make -C test check_mpi
+          make test
+          make test_mpi
+      # the targets of the GNUmakefile at the root
+      - name: Install
+        run: |
+          p=${{ runner.temp }}/astar
+          make install PREFIX=$p
+          test -f $p/lib/libAStarSearch.a
+          test -f $p/include/AStarSearch/AStarSearch.h
 
   sanitizers:
     name: Linux ${{ matrix.sanitizer }}
