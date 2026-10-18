@@ -61,16 +61,19 @@ mpi: $(DIR)/$(NAME)_mpi
 
 # check target: all the cases - - - - - - - - - - - - - - - - - - - - - - - -
 
-CASES = astar grid graph limits reopen hda-thread spa-thread pbnf-thread \
-        pase-thread hda-openmp spa-openmp pbnf-openmp hda-fastflow \
-        farm-fastflow
+# the cases of tests.txt, those with MPI apart, and the check of the list
+
+CASES = $(shell awk '/^[a-z]/ && $$2 != "mpi" { print $$1 }' tests.txt)
+MPICASES = $(shell awk '/^[a-z]/ && $$2 == "mpi" { print $$1 }' tests.txt)
 
 check: release
 	@for c in $(CASES); do $(DIR)/$(NAME) $$c ../data | tail -1 || exit 1; done
+	@$(DIR)/$(NAME) registry tests.txt | tail -1
 
 check_mpi: mpi
-	@for n in 1 2 4; do mpiexec -n $$n $(DIR)/$(NAME)_mpi mpi ../data \
-	| tail -1 || exit 1; done
+	@for c in $(MPICASES); do for n in 1 2 4; do \
+	mpiexec -n $$n $(DIR)/$(NAME)_mpi $$c ../data | tail -1 || exit 1; \
+	done; done
 
 # clean target- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

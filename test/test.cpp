@@ -18,6 +18,11 @@
  *     test pbnf-thread | pbnf-openmp
  *     test pase-thread
  *     test mpi                      (under mpiexec)
+ *     test registry <tests.txt>
+ *
+ * The cases are listed in test/tests.txt, which CMake and the makefile
+ * read; the case registry checks that the list and the cases of the tester
+ * are the same.
  *
  * \author Donato Meoli \n
  *         Dipartimento di Informatica \n
@@ -29,6 +34,8 @@
 /*-------------------------------- INCLUDES --------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+#include <algorithm>
+
 #include <cmath>
 
 #include <fstream>
@@ -36,6 +43,8 @@
 #include <iostream>
 
 #include <queue>
+
+#include <set>
 
 #include <sstream>
 
@@ -694,6 +703,82 @@ static void test_mpi( const std::string & data )
 
 #endif
 
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the cases of the tester, each with the runtime it needs ("-" if none):
+// test/tests.txt lists the same ones [see test_registry()]
+
+struct Case {
+ const char * name;                          // the name on the command line
+ const char * needs;                         // the runtime it needs
+ void ( * run )( const std::string & );      // the test, given the data
+ };
+
+static const std::vector< Case > cases = {
+ { "astar" , "-" , test_astar } ,
+ { "grid" , "-" , []( const std::string & ) { test_grid(); } } ,
+ { "graph" , "-" , []( const std::string & ) { test_graph(); } } ,
+ { "limits" , "-" , test_limits } ,
+ { "reopen" , "-" , []( const std::string & ) { test_reopen(); } } ,
+ { "hda-thread" , "-" , test_hda< ThreadRuntime > } ,
+ { "spa-thread" , "-" , test_spa< ThreadRuntime > } ,
+ { "pbnf-thread" , "-" , test_pbnf< ThreadRuntime > } ,
+ { "pase-thread" , "-" , test_pase< ThreadRuntime > } ,
+ #ifdef ASTAR_HAS_OPENMP
+  { "hda-openmp" , "openmp" , test_hda< OpenMPRuntime > } ,
+  { "spa-openmp" , "openmp" , test_spa< OpenMPRuntime > } ,
+  { "pbnf-openmp" , "openmp" , test_pbnf< OpenMPRuntime > } ,
+ #endif
+ #ifdef ASTAR_HAS_FASTFLOW
+  { "hda-fastflow" , "fastflow" , test_hda< FastFlowRuntime > } ,
+  { "farm-fastflow" , "fastflow" , test_farm } ,
+ #endif
+ #ifdef ASTAR_HAS_MPI
+  { "mpi" , "mpi" , test_mpi } ,
+ #endif
+ };
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the cases of the list (test/tests.txt) whose runtime is built are those
+// of the tester, and vice versa
+
+static void test_registry( const std::string & list )
+{
+ const auto built = []( const std::string & needs ) {
+  if( needs == "-" )
+   return( true );
+  #ifdef ASTAR_HAS_OPENMP
+   if( needs == "openmp" )
+    return( true );
+  #endif
+  #ifdef ASTAR_HAS_FASTFLOW
+   if( needs == "fastflow" )
+    return( true );
+  #endif
+  #ifdef ASTAR_HAS_MPI
+   if( needs == "mpi" )
+    return( true );
+  #endif
+  return( false );
+  };
+
+ std::ifstream in( list );
+ check( bool( in ) , "the list " + list + " is read" );
+ std::set< std::string > listed;
+ for( std::string line ; std::getline( in , line ) ; ) {
+  std::istringstream is( line );
+  std::string name , needs;
+  if( ( is >> name >> needs ) && ( name[ 0 ] != '#' ) && built( needs ) )
+   listed.insert( name );
+  }
+ std::set< std::string > tester;
+ for( const Case & c : cases )
+  tester.insert( c.name );
+ for( const auto & n : listed )
+  check( tester.count( n ) == 1 , "the case " + n + " is in the tester" );
+ for( const auto & n : tester )
+  check( listed.count( n ) == 1 , "the case " + n + " is in the list" );
+ }
+
 /*--------------------------------------------------------------------------*/
 /*---------------------------------- MAIN ----------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -717,60 +802,19 @@ int main( int argc , char * argv[] )
  #endif
 
  try {
-  if( what == "astar" )
-   test_astar( data );
-  else
-   if( what == "grid" )
-    test_grid();
-   else
-    if( what == "graph" )
-     test_graph();
-    else
-     if( what == "limits" )
-      test_limits( data );
-     else
-      if( what == "reopen" )
-       test_reopen();
-      else
-       if( what == "hda-thread" )
-        test_hda< ThreadRuntime >( data );
-       else
-        if( what == "spa-thread" )
-         test_spa< ThreadRuntime >( data );
-        else
-         if( what == "pbnf-thread" )
-          test_pbnf< ThreadRuntime >( data );
-         else
-          if( what == "pase-thread" )
-           test_pase< ThreadRuntime >( data );
-        #ifdef ASTAR_HAS_OPENMP
-        else
-         if( what == "hda-openmp" )
-          test_hda< OpenMPRuntime >( data );
-         else
-          if( what == "spa-openmp" )
-           test_spa< OpenMPRuntime >( data );
-          else
-           if( what == "pbnf-openmp" )
-            test_pbnf< OpenMPRuntime >( data );
-        #endif
-        #ifdef ASTAR_HAS_FASTFLOW
-        else
-         if( what == "hda-fastflow" )
-          test_hda< FastFlowRuntime >( data );
-         else
-          if( what == "farm-fastflow" )
-           test_farm( data );
-        #endif
-        #ifdef ASTAR_HAS_MPI
-        else
-         if( what == "mpi" )
-          test_mpi( data );
-        #endif
-        else {
-         std::cerr << "unknown case " << what << std::endl;
-         return( 2 );
-         }
+  if( what == "registry" )
+   test_registry( data );
+  else {
+   const auto c = std::find_if( cases.begin() , cases.end() ,
+                                [ & ]( const Case & x ) {
+                                 return( what == x.name );
+                                 } );
+   if( c == cases.end() ) {
+    std::cerr << "unknown case " << what << std::endl;
+    return( 2 );
+    }
+   c->run( data );
+   }
   }
  catch( std::exception & e ) {
   std::cout << "FAILED: exception " << e.what() << std::endl;

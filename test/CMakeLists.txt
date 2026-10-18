@@ -36,36 +36,42 @@ endif ()
 set(dataDir ${PROJECT_SOURCE_DIR}/data)
 
 # ----- the cases ----------------------------------------------------------- #
-set(cases astar grid graph limits reopen hda-thread spa-thread pbnf-thread
-          pase-thread)
-if (TARGET ${modName}_OpenMP)
-    list(APPEND cases hda-openmp spa-openmp pbnf-openmp)
-endif ()
-if (TARGET ${modName}_FastFlow)
-    list(APPEND cases hda-fastflow farm-fastflow)
-endif ()
-
-foreach (case ${cases})
-    add_test(NAME ${modName}.${case}
-             COMMAND ${modName}_test ${case} ${dataDir})
-endforeach ()
-
+# The cases are those of tests.txt whose runtime is built, and the case
+# registry checks that tests.txt and the cases of the tester are the same.
 # The MPI case runs on 1, 2 and 4 processes; the environment lets Open MPI
 # (4 and 5) start more processes than the cores of a small runner, and the
 # other implementations ignore it.
-if (TARGET ${modName}_MPI)
-    set(mpiOversubscribe
-            "OMPI_MCA_rmaps_base_oversubscribe=1"
-            "PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe")
-    foreach (np 1 2 4)
-        add_test(NAME ${modName}.mpi-${np}
-                 COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${np}
-                         ${MPIEXEC_PREFLAGS} $<TARGET_FILE:${modName}_test>
-                         ${MPIEXEC_POSTFLAGS} mpi ${dataDir})
-        set_tests_properties(${modName}.mpi-${np} PROPERTIES ENVIRONMENT
-                "${mpiOversubscribe}")
-    endforeach ()
-endif ()
+set(mpiOversubscribe
+        "OMPI_MCA_rmaps_base_oversubscribe=1"
+        "PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe")
+file(STRINGS tests.txt lines REGEX "^[a-z]")
+foreach (line IN LISTS lines)
+    string(REGEX MATCH "^([^ ]+) +([^ ]+)" _ "${line}")
+    set(case ${CMAKE_MATCH_1})
+    set(needs ${CMAKE_MATCH_2})
+    if ((needs STREQUAL "openmp" AND NOT TARGET ${modName}_OpenMP) OR
+            (needs STREQUAL "fastflow" AND NOT TARGET ${modName}_FastFlow) OR
+            (needs STREQUAL "mpi" AND NOT TARGET ${modName}_MPI))
+        continue ()
+    endif ()
+    if (needs STREQUAL "mpi")
+        foreach (np 1 2 4)
+            add_test(NAME ${modName}.${case}-${np}
+                     COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG}
+                             ${np} ${MPIEXEC_PREFLAGS}
+                             $<TARGET_FILE:${modName}_test>
+                             ${MPIEXEC_POSTFLAGS} ${case} ${dataDir})
+            set_tests_properties(${modName}.${case}-${np} PROPERTIES
+                    ENVIRONMENT "${mpiOversubscribe}")
+        endforeach ()
+    else ()
+        add_test(NAME ${modName}.${case}
+                 COMMAND ${modName}_test ${case} ${dataDir})
+    endif ()
+endforeach ()
+add_test(NAME ${modName}.registry
+         COMMAND ${modName}_test registry
+                 ${CMAKE_CURRENT_SOURCE_DIR}/tests.txt)
 
 # ----- the label of this library's tests ----------------------------------- #
 # The label lets the CI select exactly these tests with `ctest -L AStarSearch`.
