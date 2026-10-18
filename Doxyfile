@@ -1,11 +1,12 @@
 # --------------------------------------------------------------------------- #
 #    Doxyfile of AStarSearch                                                  #
 #                                                                             #
-#    The documentation of AStarSearch: the headers of include/ and the        #
-#    definitions of src/, with the README as the main page and the formulae   #
-#    by MathJax. The workflow .github/workflows/docs.yml builds it and        #
-#    publishes it on the pages of the repository; locally, doxygen writes it  #
-#    to build-docs/html.                                                      #
+#    The API reference of AStarSearch: the headers of include/ and the        #
+#    definitions of src/, the README as the main page, the formulae by        #
+#    MathJax and the theme doxygen-awesome-css (in build-docs/awesome),       #
+#    which the workflow docs.yml clones before it builds this and the site    #
+#    of MkDocs; the reference goes to build-docs/api and is published under   #
+#    /api/ of the pages of the repository.                                    #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
@@ -31,6 +32,12 @@ JAVADOC_AUTOBRIEF      = YES
 BUILTIN_STL_SUPPORT    = YES
 EXCLUDE_SYMBOLS        = detail::* AStar_di_unipi_it::detail::*
 GENERATE_HTML          = YES
+HTML_OUTPUT            = api
+HTML_EXTRA_STYLESHEET  = build-docs/awesome/doxygen-awesome.css \
+                         build-docs/awesome/doxygen-awesome-sidebar-only.css
+HTML_COLORSTYLE        = LIGHT
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
 GENERATE_LATEX         = NO
 GENERATE_TREEVIEW      = YES
 USE_MATHJAX            = YES

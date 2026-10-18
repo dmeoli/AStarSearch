@@ -1,14 +1,16 @@
 # --------------------------------------------------------------------------- #
 #    Documentation of AStarSearch                                             #
 #                                                                             #
-#    Builds the documentation with Doxygen (the Doxyfile at the root) and     #
-#    publishes it on the pages of the repository at each push to main.        #
+#    Builds the documentation and publishes it on the pages of the            #
+#    repository at each push to main: the site of MkDocs Material, whose      #
+#    pages docs/pages.py writes from the README, the design note and the      #
+#    CHANGELOG, and under /api/ the reference of Doxygen with the theme       #
+#    doxygen-awesome-css.                                                     #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
 #                             Universita' di Pisa                             #
 # --------------------------------------------------------------------------- #
-
 name: Docs
 
 on:
@@ -30,15 +32,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Doxygen
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: the site of MkDocs Material
+        run: |
+          pip install 'mkdocs>=1.6,<2' 'mkdocs-material>=9.5,<10'
+          python3 docs/pages.py
+          mkdocs build --strict -d build-docs/site
+      - name: the API reference of Doxygen
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen graphviz
+          git clone --depth 1 --branch v2.3.4 \
+              https://github.com/jothepro/doxygen-awesome-css build-docs/awesome
           doxygen Doxyfile
-          touch build-docs/html/.nojekyll
+          cp -R build-docs/api build-docs/site/api
+          touch build-docs/site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: build-docs/html
+          path: build-docs/site
 
   deploy:
     needs: build

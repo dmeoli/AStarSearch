@@ -1,0 +1,76 @@
+site_name: AStarSearch
+site_description: Sequential and parallel A* search in C++20
+site_url: https://dmeoli.github.io/AStarSearch/
+repo_url: https://github.com/dmeoli/AStarSearch
+repo_name: dmeoli/AStarSearch
+docs_dir: build-docs/pages
+
+theme:
+  name: material
+  features:
+  - navigation.tabs
+  - navigation.sections
+  - navigation.expand
+  - navigation.top
+  - search.suggest
+  - search.highlight
+  - content.code.copy
+  palette:
+  - scheme: default
+    primary: indigo
+    accent: indigo
+    toggle:
+      icon: material/brightness-7
+      name: Switch to dark mode
+  - scheme: slate
+    primary: indigo
+    accent: indigo
+    toggle:
+      icon: material/brightness-4
+      name: Switch to light mode
+
+plugins:
+- search
+
+nav:
+- Home: index.md
+- Getting Started:
+  - Installation: getting-started/installation.md
+- User Guide:
+  - The Search Problem: user-guide/search-problem.md
+  - The Algorithms: user-guide/algorithms.md
+  - Branch-and-Bound: user-guide/branch-and-bound.md
+  - Branch-and-Bound Design: user-guide/branch-and-bound-design.md
+  - The Data Structures: user-guide/data-structures.md
+  - Examples and Benchmark: user-guide/examples.md
+  - Testing: user-guide/testing.md
+  - References: user-guide/references.md
+- API Reference: https://dmeoli.github.io/AStarSearch/api/
+- Release Notes: release_notes.md
+
+markdown_extensions:
+- admonition
+- pymdownx.details
+- pymdownx.superfences
+- pymdownx.highlight:
+    anchor_linenums: true
+- pymdownx.inlinehilite
+- pymdownx.snippets
+- pymdownx.arithmatex:
+    generic: true
+- pymdownx.emoji:
+    emoji_index: !!python/name:material.extensions.emoji.twemoji
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg
+- attr_list
+- md_in_html
+- tables
+- toc:
+    permalink: true
+
+extra_javascript:
+- https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js
+
+extra:
+  social:
+  - icon: fontawesome/brands/github
+    link: https://github.com/dmeoli/AStarSearch
