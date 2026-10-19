@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------------*/
-/*-------------------- File DeterministicBranchAndBound.h ------------------*/
+/*------------------- File DeterministicBranchAndBound.h -------------------*/
 /*--------------------------------------------------------------------------*/
 /** @file
  * Header file for DeterministicBranchAndBound, the parallel Branch-and-Bound
@@ -51,7 +51,7 @@ namespace PBeFS_di_unipi_it
 {
 
 /*--------------------------------------------------------------------------*/
-/*-------------------- CLASS DeterministicBranchAndBound -------------------*/
+/*------------------- CLASS DeterministicBranchAndBound --------------------*/
 /*--------------------------------------------------------------------------*/
 /// the parallel B&B by synchronous rounds
 /** At each round the round best open nodes (by the selection of the
@@ -301,5 +301,5 @@ class DeterministicBranchAndBound {
 #endif  /* __PBeFS_DeterministicBranchAndBound */
 
 /*--------------------------------------------------------------------------*/
-/*-------------------- End File DeterministicBranchAndBound.h --------------*/
+/*----------------- End File DeterministicBranchAndBound.h -----------------*/
 /*--------------------------------------------------------------------------*/

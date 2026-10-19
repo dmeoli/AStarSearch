@@ -123,17 +123,32 @@ detection of duplicates or the avoidance of re-expansions do not.
   probably the best suited to an expensive evaluation, since the order of
   extraction is the one of the policy and the master is idle most of the
   time.
-- The synchronous rounds give a deterministic B&B, as the deterministic
-  mode of FiberSCIP [[18]](#ref-18). At each round the `round` best open nodes
-  are extracted, the worker i evaluates the nodes i, i + p, ... of the round
-  against the incumbent of its start, and the outcomes are merged in the
-  order of the nodes; hence, the nodes evaluated, the incumbent and the
-  bound depend only on `round`, and neither on the timing of the workers
-  nor on their number, provided that the evaluation of a node by a worker
-  depends only on the node and on the nodes that worker evaluated before.
-  The price is the wait of each round for its slowest node, and an
-  incumbent that may be one round old; the node limit stays exact, while
-  the time limit, checked between the rounds, does not.
+- The synchronous rounds give a deterministic B&B, as the deterministic mode
+  of FiberSCIP [[18]](../README.md#ref-18). At each round the `round` best
+  open nodes are extracted, the worker i evaluates the nodes i, i + p, ... of
+  the round against the incumbent of its start, and the outcomes are merged in
+  the order of the nodes; hence, the nodes evaluated, the incumbent and the
+  bound depend only on `round`, and neither on the timing of the workers nor
+  on their number, provided that the evaluation of a node by a worker depends
+  only on the node and on the nodes that worker evaluated before. The price is
+  the wait of each round for its slowest node, and an incumbent that may be
+  one round old; the node limit stays exact, while the time limit, checked
+  between the rounds, does not.
+- The SelfSplit of Fischetti, Monaci and Salvagnin
+  [[19]](../README.md#ref-19) gives a B&B whose workers communicate only at
+  the end. The tree is first explored sequentially (the *sampling*) until
+  the open nodes are `split` per worker; then the k-th of them, in the
+  order of the selection, goes to the worker k mod p, which searches its
+  subtrees sequentially with its own evaluator, its own incumbent and its
+  share of the node limit, and the incumbents, the bounds and the leaves of
+  the workers are merged at the end. Hence, the outcome depends only on
+  `split` and on p, under the same condition on the evaluation as above.
+  We do the sampling once, by the worker 0, rather than in each worker as
+  in the original scheme, since the workers here share the memory and can
+  read its open nodes; over MPI, where a node would otherwise travel as
+  bytes, each process would repeat it. The price is that the load is
+  balanced only as far as the subtrees of the split are, and that an
+  incumbent found by a worker does not prune the nodes of the others.
 - SafePBNF and PA*SE do not apply. The nblocks of PBNF make the detection
   of duplicates local, and the independence test of PA*SE avoids the
   re-expansions; a tree has neither, and PA*SE without duplicates would be
@@ -195,20 +210,30 @@ solves the relaxation, and returns its value as the bound, its
 infeasibility, and its value as a feasible one if the solution is
 integral. Its `branch` chooses a fractional variable in the stored
 solution and gives the two children, with the bound of the parent as their
-estimate. Such a solver then calls one of
+estimate; also, if its `cutoff( z )` keeps the incumbent value and its
+`evaluate` returns as feasible the value of the solution found by the
+node itself (keeping that solution in the node), the outcome is that of
+the scheme it runs, whichever it is. Such a solver then calls
 
-    auto s = branch_and_bound( problem , options );
+    auto s = parallel_branch_and_bound< P , Runtime >( problem ,
+                                                       bb_scheme( name ) ,
+                                                       options );
+
+with the name of the scheme (`sequential`, `shared`, `distributed`,
+`deterministic` or `selfsplit`) read, e.g., from its own parameters, so
+that it needs no change when the library gets a new scheme, or else one
+of the classes, e.g.,
+
     auto s = SharedBranchAndBound< P , Runtime >( problem , options ).solve();
-    auto s = DistributedBranchAndBound< P , Runtime >( problem , options )
-              .solve();
     auto s = FarmBranchAndBound< P >( problem , options ).solve();
     auto s = MPIBranchAndBoundSearch< P >( problem , options , comm ).solve();
 
-and reads the incumbent, the bound and the gap from the `Solution`. In
-the options one gives the policy, the tolerances, the initial incumbent
-and the callback, and for the parallel searches the number of workers and
-the batch size; the scheme is the class, and the runtime (C++ threads,
-OpenMP or FastFlow) its second parameter. We expect the choice among the
+and reads the incumbent, its node, the bound and the gap from the
+`Solution`. In the options one gives the policy, the tolerances, the
+initial incumbent and the callback, and for the parallel searches the
+number of workers, the batch size, the nodes of a round and those of the
+split; the runtime (C++ threads, OpenMP or FastFlow) is the second
+parameter. We expect the choice among the
 schemes to depend somewhat on the cost of an evaluation w.r.t. that of
 moving a node, which only a measurement on the instances of interest can
 settle.
@@ -234,4 +259,8 @@ leaves of the smaller one), while a search started from the open leaves of
 one stopped by a node limit, with its incumbent, has to end it. For the
 deterministic search, with four nodes per round, the value, the node, the
 bound and the counters have to be the same with 1, 2, 3 and 8 workers and
-at every repetition, also when a node limit stops it.
+at every repetition, also when a node limit stops it. For the SelfSplit,
+with 1 and 4 open nodes per worker, they have to be the same at every
+repetition, each worker has to evaluate its nodes by its own evaluator and
+as many as the counters say, and the values given to the callback of the
+incumbent have to improve each time.

@@ -719,11 +719,14 @@ class BranchAndBoundSearch {
 
 /*------------------------------ CONSTRUCTOR -------------------------------*/
 
- /// constructor, taking the problem (which must outlive the search)
+ /// constructor, taking the problem (which must outlive the search) and
+ /// the worker whose evaluator the search uses [see make_worker()], so that
+ /// sequential searches can run at the same time on different workers
 
  explicit BranchAndBoundSearch( const P & problem ,
-                                const BBOptions & options = {} )
-  : f_p( problem ) , f_options( options ) {}
+                                const BBOptions & options = {} ,
+                                unsigned worker = 0 )
+  : f_p( problem ) , f_options( options ) , f_worker( worker ) {}
 
 /*-------------------------------- SOLVING ---------------------------------*/
  /// searches the tree from the root, returning the Solution
@@ -759,7 +762,7 @@ class BranchAndBoundSearch {
   Stopwatch clock;
   SolutionT sol;
   BBStats & st = sol.stats;
-  auto w = detail::bb_worker( f_p , 0u );
+  auto w = detail::bb_worker( f_p , f_worker );
 
   double inc = o.incumbent ? sgn * *o.incumbent : inf;
   std::optional< Node > inc_node;
@@ -867,6 +870,7 @@ class BranchAndBoundSearch {
 
  const P & f_p;                                      ///< the problem
  BBOptions f_options;                                 ///< the options
+ unsigned f_worker;                                   ///< the worker
 
  };  // end( class( BranchAndBoundSearch ) )
 

@@ -60,7 +60,7 @@ namespace PBeFS_di_unipi_it
  * searches that send nodes (the distributed, the farm and the MPI ones),
  * flush_period by the distributed and the MPI ones, and seed gives the
  * owners of the nodes when the problem gives no hash( n ), while round is
- * used by the deterministic search only. */
+ * used by the deterministic search only and split by the SelfSplit one. */
 
 struct ParallelBBOptions : public BBOptions , public ParallelParams {
 
@@ -72,6 +72,10 @@ struct ParallelBBOptions : public BBOptions , public ParallelParams {
  /// the nodes evaluated at each round of the deterministic search, 0 for
  /// one per worker [see DeterministicBranchAndBound]
  std::size_t round = 0;
+
+ /// the open nodes per worker at which the sampling of the SelfSplit search
+ /// stops, 0 for 4 [see SelfSplitBranchAndBound]
+ std::size_t split = 0;
 
  };  // end( struct( ParallelBBOptions ) )
 
