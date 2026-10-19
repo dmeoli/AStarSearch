@@ -59,7 +59,8 @@ namespace PBeFS_di_unipi_it
  * bounds the evaluations of all the workers together, batch is used by the
  * searches that send nodes (the distributed, the farm and the MPI ones),
  * flush_period by the distributed and the MPI ones, and seed gives the
- * owners of the nodes when the problem gives no hash( n ). */
+ * owners of the nodes when the problem gives no hash( n ), while round is
+ * used by the deterministic search only. */
 
 struct ParallelBBOptions : public BBOptions , public ParallelParams {
 
@@ -67,6 +68,10 @@ struct ParallelBBOptions : public BBOptions , public ParallelParams {
   batch = 16;
   flush_period = 1;
   }
+
+ /// the nodes evaluated at each round of the deterministic search, 0 for
+ /// one per worker [see DeterministicBranchAndBound]
+ std::size_t round = 0;
 
  };  // end( struct( ParallelBBOptions ) )
 

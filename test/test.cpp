@@ -20,6 +20,7 @@
  *     test bb | bb-shared-thread | bb-dist-thread
  *     test bb-shared-openmp | bb-dist-openmp
  *     test bb-shared-fastflow | bb-dist-fastflow | bb-farm-fastflow
+ *     test bb-det-thread | bb-det-openmp | bb-det-fastflow
  *     test mpi | bb-mpi             (under mpiexec)
  *     test registry <tests.txt>
  *
@@ -63,6 +64,8 @@
 
 #include <string>
 
+#include <tuple>
+
 #include <type_traits>
 
 #include <unordered_map>
@@ -78,6 +81,8 @@
 #include "PBeFS/bnb/BranchAndBound.h"
 
 #include "PBeFS/bnb/ParallelBranchAndBound.h"
+
+#include "PBeFS/bnb/DeterministicBranchAndBound.h"
 
 #include "PBeFS/astar/Distribution.h"
 
@@ -1502,6 +1507,93 @@ static void test_bb_parallel( const std::string & )
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the deterministic B&B on the knapsack against the dynamic program, with
+// every selection: with 4 nodes per round its outcome (the value, the node,
+// the bound and the counters) is the same with 1 to 8 workers and at every
+// repetition, also when a node limit stops it, and with one node per worker
+// it is the optimum in both senses; its leaves and its limit cases
+
+template< class Runtime >
+static void test_bb_det( const std::string & )
+{
+ const std::string name = "deterministic B&B on " + Runtime::name();
+ using Out = std::tuple< int , double , double , std::uint64_t ,
+                         std::uint64_t , std::uint64_t , std::uint64_t ,
+                         std::uint64_t , std::vector< char > >;
+ const auto outcome = []( const auto & s ) {
+  return( Out{ int( s.status ) , s.value , s.bound , s.stats.evaluated ,
+               s.stats.generated , s.stats.pruned_generated ,
+               s.stats.pruned_extracted , s.stats.pruned_evaluated ,
+               s.node ? s.node->x : std::vector< char >() } );
+  };
+ const auto run = []( const auto & q , const ParallelBBOptions & x ) {
+  return( DeterministicBranchAndBound< std::decay_t< decltype( q ) > ,
+                                       Runtime >( q , x ).solve() );
+  };
+ int i = 0;
+ for( const Knapsack & kp : knapsacks() ) {
+  const double opt = double( kp.optimum() );
+  const std::string tag = " knapsack " + std::to_string( i++ );
+  for( Selection sel : { Selection::best_first , Selection::depth_first ,
+                         Selection::breadth_first ,
+                         Selection::best_estimate , Selection::plunging } )
+   for( std::size_t limit : { std::size_t( 0 ) , std::size_t( 7 ) } ) {
+    ParallelBBOptions o;
+    o.selection = sel;
+    o.round = 4;
+    o.node_limit = limit;
+    std::optional< Out > ref;
+    bool ok = true , same = true;
+    for( unsigned p : { 1u , 2u , 3u , 8u } )
+     for( int rep = 0 ; rep < 2 ; ++rep ) {
+      o.threads = p;
+      const auto s = run( kp , o );
+      if( limit )
+       ok = ok && ( s.status == BBStatus::node_limit ) &&
+            ( s.stats.evaluated <= limit ) && ( s.bound >= opt - 1e-9 );
+      else
+       ok = ok && ( s.status == BBStatus::optimal ) && ( s.value == opt ) &&
+            s.node && kp.check( *s.node , s.value ) && ( s.gap <= 1e-9 );
+      const Out out = outcome( s );
+      if( ! ref )
+       ref = out;
+      else
+       same = same && ( out == *ref );
+      }
+    const std::string t = name + tag + " selection " +
+                          std::to_string( int( sel ) ) +
+                          ( limit ? " node limit" : "" );
+    check( ok , t );
+    check( same , t + ", the same with 1 to 8 workers" );
+    }
+
+  ParallelBBOptions o;
+  o.threads = 3;
+  const auto m = run( MinKnapsack{ kp } , o );
+  check( ( m.status == BBStatus::optimal ) && ( m.value == - opt ) &&
+         m.node && kp.check( *m.node , - m.value ) ,
+         name + " minimization, one node per worker" + tag );
+  check_frontier( kp , o , []( const auto & q , const ParallelBBOptions & x ,
+                               std::optional< Leaves > seeds ) {
+   DeterministicBranchAndBound< std::decay_t< decltype( q ) > , Runtime >
+    b( q , x );
+   return( seeds ? b.solve( std::move( *seeds ) ) : b.solve() );
+   } , name + tag );
+  }
+
+ ParallelBBOptions o;
+ o.threads = 8;
+ check_bb_edges( knapsacks().front() , o , run , name + " 8 workers" );
+ o.threads = 0;
+ o.round = 0;
+ check_bb_edges( knapsacks().front() , o , run , name + " parameters 0" );
+ o = ParallelBBOptions();
+ o.threads = 3;
+ o.round = 1;
+ check_bb_edges( knapsacks().front() , o , run , name + " rounds of 1" );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 #ifdef PBEFS_HAS_MPI
 
 // the B&B over MPI on the knapsack against the dynamic program, with every
@@ -1592,6 +1684,7 @@ static const std::vector< Case > cases = {
  { "bb" , "-" , test_bb } ,
  { "bb-shared-thread" , "-" , test_bb_parallel< 0 , ThreadRuntime > } ,
  { "bb-dist-thread" , "-" , test_bb_parallel< 1 , ThreadRuntime > } ,
+ { "bb-det-thread" , "-" , test_bb_det< ThreadRuntime > } ,
  #ifdef PBEFS_HAS_OPENMP
   { "hda-openmp" , "openmp" , test_hda< OpenMPRuntime > } ,
   { "spa-openmp" , "openmp" , test_spa< OpenMPRuntime > } ,
@@ -1599,6 +1692,7 @@ static const std::vector< Case > cases = {
   { "bb-shared-openmp" , "openmp" ,
     test_bb_parallel< 0 , OpenMPRuntime > } ,
   { "bb-dist-openmp" , "openmp" , test_bb_parallel< 1 , OpenMPRuntime > } ,
+  { "bb-det-openmp" , "openmp" , test_bb_det< OpenMPRuntime > } ,
  #endif
  #ifdef PBEFS_HAS_FASTFLOW
   { "hda-fastflow" , "fastflow" , test_hda< FastFlowRuntime > } ,
@@ -1609,6 +1703,7 @@ static const std::vector< Case > cases = {
     test_bb_parallel< 1 , FastFlowRuntime > } ,
   { "bb-farm-fastflow" , "fastflow" ,
     test_bb_parallel< 2 , FastFlowRuntime > } ,
+  { "bb-det-fastflow" , "fastflow" , test_bb_det< FastFlowRuntime > } ,
  #endif
  #ifdef PBEFS_HAS_MPI
   { "mpi" , "mpi" , test_mpi } ,

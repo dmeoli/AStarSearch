@@ -54,6 +54,7 @@ PBeFSH   = $(PBeFSSDR)/include/PBeFS/PBeFS.h \
            $(PBeFSSDR)/include/PBeFS/astar/SlowDomain.h \
            $(PBeFSSDR)/include/PBeFS/astar/Solution.h \
            $(PBeFSSDR)/include/PBeFS/bnb/BranchAndBound.h \
+           $(PBeFSSDR)/include/PBeFS/bnb/DeterministicBranchAndBound.h \
            $(PBeFSSDR)/include/PBeFS/bnb/ParallelBranchAndBound.h
 
 # the headers of the optional runtimes- - - - - - - - - - - - - - - - - - - -

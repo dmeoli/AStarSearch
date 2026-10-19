@@ -41,6 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   MPI process per worker (MPIBranchAndBoundSearch), tested on
   the 0-1 knapsack against the dynamic program; the design is in
   docs/branch-and-bound.md
+- the deterministic parallel branch-and-bound (DeterministicBranchAndBound),
+  by synchronous rounds of the `round` best open nodes, evaluated by the
+  workers against the incumbent of the start of the round and merged in
+  their order, whose outcome depends neither on the timing of the workers
+  nor on their number, on the three runtimes; the tests check that it is
+  the same with 1 to 8 workers and at every repetition
 - the reoptimization of a branch-and-bound: with BBOptions::keep_frontier
   the Solution holds the leaves of the tree explored (pruned, feasible,
   infeasible, or left open by a limit), and solve( seeds ) starts any of

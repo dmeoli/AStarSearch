@@ -151,11 +151,15 @@ The search is sequential (`branch_and_bound( p , options )`), parallel with
 a queue shared by the workers as in SPA* (`SharedBranchAndBound`) or with a
 queue per worker and the children sent to their owners as in HDA*
 (`DistributedBranchAndBound`), both on the three runtimes, master-worker on
-a FastFlow farm (`FarmBranchAndBound`), or with one MPI process per worker
-(`MPIBranchAndBoundSearch`, whose nodes travel as bytes). In the taxonomy of
-Gendron and Crainic [[16]](#ref-16), all of them build one tree in parallel (their
-type 2), asynchronously, with a single pool of open nodes (the shared queue
-and the farm) or with a pool per worker (the distributed queues and MPI);
+a FastFlow farm (`FarmBranchAndBound`), with one MPI process per worker
+(`MPIBranchAndBoundSearch`, whose nodes travel as bytes), or by synchronous
+rounds (`DeterministicBranchAndBound`), whose outcome depends neither on the
+timing of the workers nor on their number, as the deterministic mode of
+FiberSCIP [[18]](#ref-18), so that the experiments of a paper can be repeated
+exactly. In the taxonomy of Gendron and Crainic [[16]](#ref-16), all of them build one
+tree in parallel (their type 2), asynchronously but for the rounds, with a
+single pool of open nodes (the shared queue, the farm and the rounds) or
+with a pool per worker (the distributed queues and MPI);
 the parallelism inside a node (their type 1) is left to the evaluation of
 the problem, and the search of several trees at once (their type 3) is not
 provided. SafePBNF and PA*SE have no counterpart, since they exist to
@@ -370,3 +374,5 @@ at the University of Pisa.
 <a id="ref-16"></a>[16] B. Gendron and T. G. Crainic, [*Parallel branch-and-bound algorithms: survey and synthesis*](https://doi.org/10.1287/opre.42.6.1042), Operations Research 42(6), 1042-1066, 1994.
 
 <a id="ref-17"></a>[17] D. S. Nau, V. Kumar and L. Kanal, [*General branch and bound, and its relation to A\* and AO\**](https://doi.org/10.1016/0004-3702(84)90004-3), Artificial Intelligence 23(1), 29-58, 1984.
+
+<a id="ref-18"></a>[18] Y. Shinano, S. Heinz, S. Vigerske and M. Winkler, [*FiberSCIP: a shared memory parallelization of SCIP*](https://doi.org/10.1287/ijoc.2017.0762), INFORMS Journal on Computing 30(1), 11-30, 2018.

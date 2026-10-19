@@ -7,8 +7,10 @@
  * satisfying the concept BranchAndBound, save the parts that need an
  * external library: FarmBranchAndBound.h (FastFlow) and MPIBranchAndBound.h
  * (MPI). They are the sequential BranchAndBoundSearch [see
- * BranchAndBound.h], and SharedBranchAndBound and DistributedBranchAndBound
- * on a runtime of the core [see ParallelBranchAndBound.h and core.h].
+ * BranchAndBound.h], SharedBranchAndBound and DistributedBranchAndBound
+ * on a runtime of the core [see ParallelBranchAndBound.h and core.h], and
+ * DeterministicBranchAndBound, by synchronous rounds whose outcome does not
+ * depend on the timing of the workers [see DeterministicBranchAndBound.h].
  *
  * \author Donato Meoli \n
  *         Dipartimento di Informatica \n
@@ -33,6 +35,8 @@
 #include "PBeFS/bnb/BranchAndBound.h"
 
 #include "PBeFS/bnb/ParallelBranchAndBound.h"
+
+#include "PBeFS/bnb/DeterministicBranchAndBound.h"
 
 /*--------------------------------------------------------------------------*/
 

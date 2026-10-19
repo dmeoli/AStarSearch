@@ -115,6 +115,17 @@ detection of duplicates or the avoidance of re-expansions do not.
   probably the best suited to an expensive evaluation, since the order of
   extraction is the one of the policy and the master is idle most of the
   time.
+- The synchronous rounds give a deterministic B&B, as the deterministic
+  mode of FiberSCIP [[18]](#ref-18). At each round the `round` best open nodes
+  are extracted, the worker i evaluates the nodes i, i + p, ... of the round
+  against the incumbent of its start, and the outcomes are merged in the
+  order of the nodes; hence, the nodes evaluated, the incumbent and the
+  bound depend only on `round`, and neither on the timing of the workers
+  nor on their number, provided that the evaluation of a node by a worker
+  depends only on the node and on the nodes that worker evaluated before.
+  The price is the wait of each round for its slowest node, and an
+  incumbent that may be one round old; the node limit stays exact, while
+  the time limit, checked between the rounds, does not.
 - SafePBNF and PA*SE do not apply. The nblocks of PBNF make the detection
   of duplicates local, and the independence test of PA*SE avoids the
   re-expansions; a tree has neither, and PA*SE without duplicates would be
@@ -212,4 +223,7 @@ bound the optimum, and a search started from them has to solve the knapsack
 of three quarters of the capacity (and, when the children that do not fit
 are generated and found infeasible, the original knapsack again from the
 leaves of the smaller one), while a search started from the open leaves of
-one stopped by a node limit, with its incumbent, has to end it.
+one stopped by a node limit, with its incumbent, has to end it. For the
+deterministic search, with four nodes per round, the value, the node, the
+bound and the counters have to be the same with 1, 2, 3 and 8 workers and
+at every repetition, also when a node limit stops it.
