@@ -44,9 +44,17 @@ search counts the levels), and `make_worker( i )`. The latter returns, for
 the worker i of a parallel search, an object with the same `evaluate` and
 `branch`: this is needed when the evaluation keeps a state (e.g., a model
 and a solver that are modified at each node), since then each worker has
-its copy and P is only read. A maximization problem is solved by negating
-the values internally; thus, the comparisons below are those of a
-minimization.
+its copy and P is only read. Such an object may also give `cutoff( z )`,
+which the searches call before each `evaluate` and `branch` with the
+incumbent value z (in the sense of P, infinite when there is none), so
+that, e.g., the relaxation of a node can stop as soon as it is proven not
+to improve z, the node being then infeasible to the search. The worker
+should take z from here rather than from a value shared with the other
+workers, since the deterministic search gives the incumbent of the start
+of the round, and an evaluation against a value that the others change
+meanwhile would make its outcome depend on their timing. A maximization
+problem is solved by negating the values internally; thus, the
+comparisons below are those of a minimization.
 
 Note that the `Domain` concept and the searches that use it are left
 untouched: the B&B layer is a new concept with its searches (`BranchAndBound.h` and

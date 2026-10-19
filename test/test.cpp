@@ -40,6 +40,8 @@
 
 #include <algorithm>
 
+#include <atomic>
+
 #include <cmath>
 
 #include <cstring>
@@ -1074,6 +1076,56 @@ struct MinKnapsack {
  };  // end( struct( MinKnapsack ) )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the knapsack whose workers take the incumbent by cutoff( z ), and find
+// infeasible a node whose bound cannot exceed z, as a relaxation stopped
+// by its cutoff does; a z above the optimum is recorded in wrong
+
+struct CutoffKnapsack {
+
+ using node_type = Knapsack::node_type;
+
+ static constexpr Sense sense = Sense::maximize;
+
+ struct Worker {
+  const Knapsack & kp;
+  std::atomic< bool > & wrong;
+  double opt;
+  double z = - std::numeric_limits< double >::infinity();
+
+  void cutoff( double v ) {
+   if( v > opt )
+    wrong = true;
+   z = v;
+   }
+
+  Evaluation evaluate( node_type & n ) const {
+   Evaluation e = kp.evaluate( n );
+   if( ( ! e.infeasible ) && ( e.bound <= z ) ) {
+    e = Evaluation();
+    e.infeasible = true;
+    }
+   return( e );
+   }
+
+  template< class F >
+  void branch( const node_type & n , F && f ) const {
+   kp.branch( n , std::forward< F >( f ) );
+   }
+  };
+
+ const Knapsack & kp;
+ std::atomic< bool > & wrong;
+ double opt;                      // the optimum of kp
+
+ node_type root( void ) const { return( kp.root() ); }
+
+ Worker make_worker( unsigned ) const {
+  return( Worker{ kp , wrong , opt } );
+  }
+
+ };  // end( struct( CutoffKnapsack ) )
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // the instances of the knapsack of the tests: 2 of each class of Pisinger
 
 static std::vector< Knapsack > knapsacks( void )
@@ -1594,6 +1646,60 @@ static void test_bb_det( const std::string & )
  }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// the incumbent given to the workers by cutoff( z ): the sequential, the
+// shared, the distributed and the deterministic B&B find the optimum with
+// workers that fence the nodes by it, which they do (some evaluated node
+// is infeasible, which none is in the knapsack alone), z never exceeds the
+// optimum, and the outcome of the deterministic B&B is the same with 1 to
+// 8 workers
+
+static void test_bb_cutoff( const std::string & )
+{
+ std::atomic< bool > wrong = false;
+ bool fenced = false;
+ int i = 0;
+ for( const Knapsack & kp : knapsacks() ) {
+  const double opt = double( kp.optimum() );
+  const std::string tag = " knapsack " + std::to_string( i++ );
+  const CutoffKnapsack ck{ kp , wrong , opt };
+  const auto good = [ & ]( const auto & s ) {
+   fenced = fenced || ( s.stats.infeasible > 0 );
+   return( ( s.status == BBStatus::optimal ) && ( s.value == opt ) &&
+           s.node && kp.check( *s.node , s.value ) );
+   };
+  BBOptions so;
+  check( good( branch_and_bound( ck , so ) ) , "B&B by cutoff" + tag );
+  ParallelBBOptions o;
+  o.threads = 4;
+  check( good( SharedBranchAndBound< CutoffKnapsack >( ck , o ).solve() ) ,
+         "shared B&B by cutoff" + tag );
+  check( good( DistributedBranchAndBound< CutoffKnapsack >( ck , o )
+               .solve() ) , "distributed B&B by cutoff" + tag );
+  o.round = 4;
+  std::optional< std::tuple< double , double , std::uint64_t ,
+                             std::uint64_t > > ref;
+  bool ok = true , same = true;
+  for( unsigned p : { 1u , 2u , 3u , 8u } ) {
+   o.threads = p;
+   const auto s = DeterministicBranchAndBound< CutoffKnapsack >( ck , o )
+                   .solve();
+   ok = ok && good( s );
+   const auto out = std::make_tuple( s.value , s.bound , s.stats.evaluated ,
+                                     s.stats.infeasible );
+   if( ! ref )
+    ref = out;
+   else
+    same = same && ( out == *ref );
+   }
+  check( ok , "deterministic B&B by cutoff" + tag );
+  check( same , "deterministic B&B by cutoff" + tag +
+                ", the same with 1 to 8 workers" );
+  }
+ check( fenced , "B&B by cutoff: some node fenced by the incumbent" );
+ check( ! wrong , "B&B by cutoff: no incumbent above the optimum" );
+ }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 #ifdef PBEFS_HAS_MPI
 
 // the B&B over MPI on the knapsack against the dynamic program, with every
@@ -1685,6 +1791,7 @@ static const std::vector< Case > cases = {
  { "bb-shared-thread" , "-" , test_bb_parallel< 0 , ThreadRuntime > } ,
  { "bb-dist-thread" , "-" , test_bb_parallel< 1 , ThreadRuntime > } ,
  { "bb-det-thread" , "-" , test_bb_det< ThreadRuntime > } ,
+ { "bb-cutoff" , "-" , test_bb_cutoff } ,
  #ifdef PBEFS_HAS_OPENMP
   { "hda-openmp" , "openmp" , test_hda< OpenMPRuntime > } ,
   { "spa-openmp" , "openmp" , test_spa< OpenMPRuntime > } ,

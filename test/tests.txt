@@ -25,6 +25,7 @@ bb                  -         the 0-1 knapsack against the dynamic program
 bb-shared-thread    -         the shared queue, 1 to 8 workers
 bb-dist-thread      -         the distributed queues, 1 to 8 workers
 bb-det-thread       -         the deterministic rounds, 1 to 8 workers
+bb-cutoff           -         the incumbent given to the workers by cutoff
 bb-shared-openmp    openmp    the shared queue on OpenMP
 bb-dist-openmp      openmp    the distributed queues on OpenMP
 bb-det-openmp       openmp    the deterministic rounds on OpenMP

@@ -47,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their order, whose outcome depends neither on the timing of the workers
   nor on their number, on the three runtimes; the tests check that it is
   the same with 1 to 8 workers and at every repetition
+- the incumbent given to the evaluator of a worker by cutoff( z ), if it
+  has one, before each evaluation and branching, in every branch-and-bound
+  (in the deterministic one, the incumbent of the start of the round), so
+  that a relaxation can stop as soon as it cannot improve it
 - the reoptimization of a branch-and-bound: with BBOptions::keep_frontier
   the Solution holds the leaves of the tree explored (pruned, feasible,
   infeasible, or left open by a limit), and solve( seeds ) starts any of

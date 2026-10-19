@@ -132,7 +132,9 @@ two methods: `evaluate( n )` returns the bound of the node n, whether it is
 infeasible and possibly a feasible value, while `branch( n , sink )` gives
 the children of n, each with a bound that is cheap to compute.
 Alternatively, `make_worker( i )` gives each worker an evaluator of its
-own (e.g., with a copy of a model and of a solver). Note that a B&B tree has no duplicates;
+own (e.g., with a copy of a model and of a solver), which may also take
+the incumbent value by `cutoff( z )` before each evaluation (e.g., to stop
+a relaxation that cannot improve it). Note that a B&B tree has no duplicates;
 hence, there is no closed list. A node is evaluated only when it is
 extracted, which pays off when the bound is "expensive" (say, a Linear
 Program), and it is pruned when it is generated, when it is extracted and

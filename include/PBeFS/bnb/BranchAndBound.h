@@ -134,7 +134,17 @@ namespace detail {
 /** evaluate( n ) returns the Evaluation of the node n, possibly storing in
  * n what the branching needs, and branch( n , sink ) calls sink( c , e )
  * for every child c of the evaluated node n, e being a bound of c that is
- * cheap to compute (typically the bound of n). */
+ * cheap to compute (typically the bound of n).
+ *
+ * Optionally, the evaluator may give cutoff( z ), which the searches call
+ * before each evaluate( n ) and branch( n , sink ) with the incumbent value
+ * z (in the sense of the problem, infinite when there is none), e.g., to
+ * stop the relaxation of a node as soon as it is proven not to improve z,
+ * the node being then found infeasible. A worker should take z from here
+ * rather than from a value it shares with the others: in the deterministic
+ * search z is the incumbent of the start of the round [see
+ * DeterministicBranchAndBound], so that the evaluation does not depend on
+ * what the other workers find meanwhile. */
 
 template< class W , class N >
 concept BBEvaluator = requires( W & w , N & n , const N & cn ) {
@@ -639,6 +649,11 @@ void bb_process( typename P::node_type & n , double bound , unsigned depth ,
   fr.add( std::move( n ) , bound , depth , BBLeafKind::pruned );
   return;
   }
+ const auto cutoff = [ & ]( void ) {
+  if constexpr( requires { w.cutoff( 0.0 ); } )
+   w.cutoff( sgn * inc() );
+  };
+ cutoff();
  const Evaluation e = w.evaluate( n );
  ++st.evaluated;
  if( e.infeasible ) {
@@ -658,6 +673,7 @@ void bb_process( typename P::node_type & n , double bound , unsigned depth ,
   }
  ++st.branched;
  const std::uint64_t g = st.generated;
+ cutoff();
  w.branch( std::as_const( n ) , [ & ]( auto && c , double est ) {
   ++st.generated;
   const double cb = std::max( b , sgn * est );
