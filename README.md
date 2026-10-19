@@ -197,6 +197,19 @@ stopped at the node limit), the cost, the path and the counters of the
 search; for the parallel ones, these include the load balance and the
 communication overhead of [[2]](#ref-2).
 
+These structures can be replaced, at compile time, by those of the
+standard library (`std::deque`, `std::unordered_map` and
+`std::priority_queue`), of Boost (`boost::object_pool`,
+`boost::unordered_flat_map` and `boost::heap::d_ary_heap`) or of
+[ADS](https://github.com/dmeoli/ADS) (`Arena`, `PointerTable`, `DaryHeap`
+and `BucketQueue`), with the same interface (`Structures.h`); the
+searches do not change, and neither does the order of their expansions,
+but for the ties of f and g in OPEN, which the sets break differently.
+Neither the standard library nor Boost has a bucket queue, and hence with
+them both OPEN lists are a heap. The sets exist to measure the searches on
+each of them (`tools/bench/structures.sh`), and the B&B, whose queue is its
+own, does not depend on them.
+
 ## Building and using the library
 
 The library needs only a C++20 compiler, together with CMake 3.21 or GNU
@@ -216,7 +229,11 @@ cmake --install build --prefix <prefix>
 ```
 
 where `PBEFS_WITH_OPENMP`, `PBEFS_WITH_MPI` and `PBEFS_WITH_FASTFLOW` (all
-`ON` by default) can exclude a runtime, and `PBEFS_BUILD_TESTS`,
+`ON` by default) can exclude a runtime, `PBEFS_STRUCTURES` chooses the data
+structures of A* (`own`, the default, `std`, `boost`, which needs Boost
+1.81 or later, or `ads`, which CMake finds by `find_package(ADS)` or else
+downloads at the commit `PBEFS_ADS_COMMIT`; the makefiles take it from
+`PBeFSSTRUCT`), and `PBEFS_BUILD_TESTS`,
 `PBEFS_BUILD_EXAMPLES` and `PBEFS_BUILD_TOOLS` (`ON` only when PBeFS
 is the top-level project) the tests, the examples and the benchmark. A CMake project then
 uses the library with
@@ -300,7 +317,12 @@ prints a line of CSV per run with the cost, the counters and the time;
 environment variable `PBEFS_PIN` is set, the i-th worker is pinned to the
 i-th CPU of the affinity mask of the process (as given, e.g., by `numactl
 --physcpubind` or `taskset`). On machines with several sockets this is
-usually needed for the timings to be repeatable.
+usually needed for the timings to be repeatable. Finally,
+`tools/bench/structures.sh` runs A* and HDA* of four builds, one per set of
+data structures, on instances of growing size (the 15-puzzle in bands of the
+instances of Korf, and random grids of growing side), and
+`tools/bench/structures.py` makes the tables of the comparison, with the
+noise of two runs of the same build.
 
 ## Testing
 

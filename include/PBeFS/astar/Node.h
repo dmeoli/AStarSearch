@@ -36,6 +36,8 @@
 
 #include "PBeFS/astar/Domain.h"
 
+#include "PBeFS/astar/Structures.h"
+
 #include "PBeFS/core/SearchUtils.h"
 
 /*--------------------------------------------------------------------------*/
@@ -72,6 +74,8 @@ struct Node {
  [[nodiscard]] Cost f( void ) const noexcept { return( g + h ); }
 
  };  // end( struct( Node ) )
+
+#ifdef PBEFS_OWN_STRUCTURES
 
 /*--------------------------------------------------------------------------*/
 /*----------------------------- CLASS NodePool -----------------------------*/
@@ -146,6 +150,8 @@ class NodePool {
 
  };  // end( class( NodePool ) )
 
+#endif  /* PBEFS_OWN_STRUCTURES */
+
 /*--------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------*/
@@ -178,6 +184,17 @@ template< class NodeT >
 /*--------------------------------------------------------------------------*/
 
 }  // end( namespace PBeFS_di_unipi_it )
+
+/*--------------------------------------------------------------------------*/
+
+// the structures of another set, in place of those of the library
+#if defined( PBEFS_STRUCTURES_STD )
+ #include "PBeFS/astar/structures/std/NodePool.h"
+#elif defined( PBEFS_STRUCTURES_BOOST )
+ #include "PBeFS/astar/structures/boost/NodePool.h"
+#elif defined( PBEFS_STRUCTURES_ADS )
+ #include "PBeFS/astar/structures/ads/NodePool.h"
+#endif
 
 /*--------------------------------------------------------------------------*/
 

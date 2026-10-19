@@ -15,7 +15,11 @@
 #    The parallel runtimes are optional: OpenMP and MPI are used if found,    #
 #    FastFlow if its headers are in FASTFLOW_ROOT (/opt/fastflow by default)  #
 #    or on the include path, else it is downloaded at a fixed commit; each    #
-#    can be turned off with the PBEFS_WITH_* options.                         #
+#    can be turned off with the PBEFS_WITH_* options. PBEFS_STRUCTURES        #
+#    chooses the data structures of A*: those of the library (own, the        #
+#    default), of the standard library (std), of Boost (boost) or of ADS      #
+#    (ads), the latter found by find_package(ADS) or else downloaded at a     #
+#    fixed commit.                                                            #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
@@ -78,8 +82,41 @@ set(FASTFLOW_ROOT /opt/fastflow CACHE PATH
 set(PBEFS_FASTFLOW_COMMIT d476f66ab924d8d122f54b4b90aee00ef979aea8
     CACHE STRING "The commit of FastFlow to download")
 
+# the data structures of A* [see include/PBeFS/astar/Structures.h], and the
+# commit of ADS downloaded when they are those of ADS and it is not installed
+set(PBEFS_STRUCTURES own CACHE STRING
+    "The data structures of A*: own, std, boost or ads")
+set_property(CACHE PBEFS_STRUCTURES PROPERTY STRINGS own std boost ads)
+set(ADS_ROOT /opt/ADS CACHE PATH "Prefix where ADS is installed")
+set(PBEFS_ADS_COMMIT 22a9ff91b1cf97cd8c0d3a33b3813fa01fd97fe0
+    CACHE STRING "The commit of ADS to download")
+
 # ----- Requirements -------------------------------------------------------- #
 find_package(Threads REQUIRED)
+
+# Boost is header-only here (Boost::headers); ADS is installed (ADS_ROOT is
+# a hint), or else the sources of the commit PBEFS_ADS_COMMIT are added as
+# a subproject.
+if (PBEFS_STRUCTURES STREQUAL "boost")
+    find_package(Boost 1.81 REQUIRED)
+elseif (PBEFS_STRUCTURES STREQUAL "ads")
+    find_package(ADS CONFIG QUIET HINTS ${ADS_ROOT})
+    if (NOT ADS_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(
+                ADS
+                GIT_REPOSITORY https://github.com/dmeoli/ADS.git
+                GIT_TAG ${PBEFS_ADS_COMMIT})
+        FetchContent_MakeAvailable(ADS)
+    endif ()
+    if (NOT TARGET ADS::ADS)
+        message(FATAL_ERROR "PBEFS_STRUCTURES ads needs ADS: install it or "
+                "set ADS_ROOT")
+    endif ()
+elseif (NOT PBEFS_STRUCTURES MATCHES "^(own|std)$")
+    message(FATAL_ERROR "PBEFS_STRUCTURES is own, std, boost or ads, not "
+            "${PBEFS_STRUCTURES}")
+endif ()
 
 if (PBEFS_WITH_OPENMP)
     find_package(OpenMP COMPONENTS CXX)
@@ -155,6 +192,16 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:include>)
 target_link_libraries(${modName} PUBLIC Threads::Threads)
+if (NOT PBEFS_STRUCTURES STREQUAL "own")
+    string(TOUPPER ${PBEFS_STRUCTURES} structures)
+    target_compile_definitions(${modName} PUBLIC
+            PBEFS_STRUCTURES_${structures})
+endif ()
+if (PBEFS_STRUCTURES STREQUAL "boost")
+    target_link_libraries(${modName} PUBLIC Boost::headers)
+elseif (PBEFS_STRUCTURES STREQUAL "ads")
+    target_link_libraries(${modName} PUBLIC ADS::ADS)
+endif ()
 add_library(${modNamespace}::${modName} ALIAS ${modName})
 set(installTargets ${modName})
 
@@ -195,7 +242,8 @@ if (PBEFS_HAS_FASTFLOW)
 endif ()
 
 message(STATUS "${modName} ${PROJECT_VERSION}: OpenMP ${OpenMP_CXX_FOUND}, "
-        "MPI ${MPI_CXX_FOUND}, FastFlow ${PBEFS_HAS_FASTFLOW}")
+        "MPI ${MPI_CXX_FOUND}, FastFlow ${PBEFS_HAS_FASTFLOW}, "
+        "structures ${PBEFS_STRUCTURES}")
 
 # ----- Subdirectories ------------------------------------------------------ #
 if (PBEFS_BUILD_EXAMPLES)

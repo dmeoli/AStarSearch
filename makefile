@@ -10,6 +10,9 @@
 #   Input:  $(CC)      = compiler command                                    #
 #           $(SW)      = compiler options                                    #
 #           $(PBeFSSDR)  = the directory where PBeFS is                      #
+#           $(PBeFSSTRUCT) = the data structures of A*: std, boost or ads,   #
+#                          none for those of PBeFS                           #
+#           $(ADSSDR)    = the directory where ADS is, with ads              #
 #                                                                            #
 #   Output: $(PBeFSOBJ)  = the final object(s) / library                     #
 #           $(PBeFSH)    = the .h files to include                           #
@@ -29,6 +32,17 @@ PBeFSOBJ = $(PBeFSSDR)/obj/Distribution.o \
            $(PBeFSSDR)/obj/Solution.o
 
 PBeFSINC = -I$(PBeFSSDR)/include
+
+# the data structures of A* [see include/PBeFS/astar/Structures.h]
+ifeq ($(PBeFSSTRUCT),std)
+PBeFSINC += -DPBEFS_STRUCTURES_STD
+endif
+ifeq ($(PBeFSSTRUCT),boost)
+PBeFSINC += -DPBEFS_STRUCTURES_BOOST
+endif
+ifeq ($(PBeFSSTRUCT),ads)
+PBeFSINC += -DPBEFS_STRUCTURES_ADS -I$(ADSSDR)/include
+endif
 
 PBeFSH   = $(PBeFSSDR)/include/PBeFS/PBeFS.h \
            $(PBeFSSDR)/include/PBeFS/astar.h \
@@ -53,6 +67,8 @@ PBeFSH   = $(PBeFSSDR)/include/PBeFS/PBeFS.h \
            $(PBeFSSDR)/include/PBeFS/astar/SlidingTile.h \
            $(PBeFSSDR)/include/PBeFS/astar/SlowDomain.h \
            $(PBeFSSDR)/include/PBeFS/astar/Solution.h \
+           $(PBeFSSDR)/include/PBeFS/astar/Structures.h \
+           $(wildcard $(PBeFSSDR)/include/PBeFS/astar/structures/*/*.h) \
            $(PBeFSSDR)/include/PBeFS/bnb/BranchAndBound.h \
            $(PBeFSSDR)/include/PBeFS/bnb/BranchAndBoundScheme.h \
            $(PBeFSSDR)/include/PBeFS/bnb/DeterministicBranchAndBound.h \

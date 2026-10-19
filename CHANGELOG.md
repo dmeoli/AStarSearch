@@ -47,6 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their order, whose outcome depends neither on the timing of the workers
   nor on their number, on the three runtimes; the tests check that it is
   the same with 1 to 8 workers and at every repetition
+- the data structures of A* chosen at compile time (PBEFS_STRUCTURES in
+  CMake, PBeFSSTRUCT in the makefiles, Structures.h): those of the
+  library, or those of the standard library, of Boost or of ADS, with the
+  same interface; the CI runs the tests with each of them, and
+  tools/bench/structures.sh with structures.py compares A* and HDA* on
+  them, on instances of growing size
 - the choice of the branch-and-bound by a value (BranchAndBoundScheme.h):
   BBScheme names the searches of the core, bb_scheme() reads it from its
   name and parallel_branch_and_bound() runs the search of the scheme, so

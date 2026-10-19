@@ -6,7 +6,9 @@
 #    macOS and Windows, with the makefiles on Linux, and on Linux once more   #
 #    under AddressSanitizer + UndefinedBehaviorSanitizer and under            #
 #    ThreadSanitizer, which checks the synchronization of the shared-memory   #
-#    searches, and in Debug with the line coverage sent to Coveralls.         #
+#    searches, and in Debug with the line coverage sent to Coveralls. The     #
+#    tests run once more with each of the other sets of data structures of    #
+#    A* (std, Boost and ADS, see PBEFS_STRUCTURES).                           #
 #                                                                             #
 #                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
@@ -49,6 +51,29 @@ jobs:
           p=${{ runner.temp }}/astar
           cmake --install build --prefix $p
           test -f $p/lib/cmake/PBeFS/PBeFSConfig.cmake
+
+  structures:
+    name: Linux structures ${{ matrix.structures }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        structures: [ std, boost, ads ]
+    steps:
+      # ADS is not installed: CMake downloads it
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin libboost-dev
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          -DPBEFS_STRUCTURES=${{ matrix.structures }}
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build -L PBeFS --output-on-failure
 
   makefiles:
     name: Linux makefiles

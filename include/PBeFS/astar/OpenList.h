@@ -37,6 +37,8 @@
 
 #include <vector>
 
+#include "PBeFS/astar/Structures.h"
+
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -71,6 +73,8 @@ struct OpenEntry {
   }
 
  };  // end( struct( OpenEntry ) )
+
+#ifdef PBEFS_OWN_STRUCTURES
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------- CLASS HeapOpenList ---------------------------*/
@@ -320,9 +324,22 @@ class BucketOpenList {
 
  };  // end( class( BucketOpenList ) )
 
+#endif  /* PBEFS_OWN_STRUCTURES */
+
 /*--------------------------------------------------------------------------*/
 
 }  // end( namespace PBeFS_di_unipi_it )
+
+/*--------------------------------------------------------------------------*/
+
+// the structures of another set, in place of those of the library
+#if defined( PBEFS_STRUCTURES_STD )
+ #include "PBeFS/astar/structures/std/OpenList.h"
+#elif defined( PBEFS_STRUCTURES_BOOST )
+ #include "PBeFS/astar/structures/boost/OpenList.h"
+#elif defined( PBEFS_STRUCTURES_ADS )
+ #include "PBeFS/astar/structures/ads/OpenList.h"
+#endif
 
 /*--------------------------------------------------------------------------*/
 

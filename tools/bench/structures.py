@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+###############################################################################
+#                                                                             #
+#   structures.py: the tables of A* on the sets of data structures            #
+#                                                                             #
+#   Usage:  structures.py <out of structures.sh> [--html]                     #
+#                                                                             #
+#   For each problem, size and search it gives, set by set (PBeFS, std,       #
+#   Boost and ADS, one under the other), the total seconds over the           #
+#   instances (the mean of the two repetitions of each), the nodes expanded   #
+#   per second, and the time of the set divided by that of ADS, as the        #
+#   median and the range over the instances (above 1 when ADS is faster).     #
+#   It also checks that every set finds the same cost on every instance,      #
+#   and gives the A/A noise, i.e., the gap between the two repetitions of     #
+#   the same run, as the median and the 90th percentile. With --html the      #
+#   table is HTML, a problem and a size spanning their rows, as in the        #
+#   README; otherwise it is Markdown.                                         #
+#                                                                             #
+#                                Donato Meoli                                 #
+#                         Dipartimento di Informatica                         #
+#                             Universita' di Pisa                             #
+#                                                                             #
+###############################################################################
+
+import collections
+import csv
+import statistics
+import sys
+
+SETS = [('own', 'PBeFS'), ('std', 'std'), ('boost', 'Boost'), ('ads', 'ADS')]
+
+
+def problem(r):
+    """the problem of a row, and the key that orders the sizes"""
+    if r['domain'] == 'tiles15':
+        return '15-puzzle', 'about %s nodes' % r['size'], float(r['size'])
+    moves = r['domain'][-1]
+    side = int(r['size'])
+    return ('grid, %s moves' % moves, '%d x %d' % (side, side), side)
+
+
+def search(r):
+    """the name of the search of a row"""
+    if r['algo'] == 'hda':
+        return 'HDA* %s threads' % r['threads']
+    if r['domain'] == 'tiles15':
+        return 'A* ' + r['open']
+    return 'A*'
+
+
+def fmt(x):
+    """a number with three significant digits"""
+    if x >= 100:
+        return '%.0f' % x
+    if x >= 10:
+        return '%.1f' % x
+    return '%.2f' % x
+
+
+def main(out, html):
+    with open(out + '/structures.csv') as f:
+        rows = [r for r in csv.DictReader(f) if r['status'] != 'node_limit']
+    secs = collections.defaultdict(list)    # run -> seconds of the reps
+    nodes = {}                              # run -> expanded
+    cost = collections.defaultdict(set)     # instance -> costs of the sets
+    for r in rows:
+        p, size, order = problem(r)
+        inst = (p, size, r['domain'], r['instance'])
+        run = (p, size, order, search(r), r['set'], r['instance'])
+        secs[run].append(float(r['seconds']))
+        nodes[run] = int(r['expanded'])
+        cost[inst].add(r['cost'])
+    wrong = [i for i, c in cost.items() if len(c) > 1]
+
+    gaps = [abs(s[0] - s[1]) / statistics.mean(s) for s in secs.values()
+            if len(s) == 2 and statistics.mean(s) > 0]
+    groups = collections.defaultdict(dict)   # ( p , size , search ) -> set
+    for (p, size, order, se, s, inst), t in secs.items():
+        groups[(p, order, size, se)].setdefault(s, {})[inst] = (
+            statistics.mean(t), nodes[(p, size, order, se, s, inst)])
+
+    lines = []
+    for (p, order, size, se) in sorted(groups):
+        g = groups[(p, order, size, se)]
+        if 'ads' not in g:
+            continue
+        cells = []
+        for s, label in SETS:
+            if s not in g:
+                continue
+            tot = sum(t for t, n in g[s].values())
+            nps = sum(n for t, n in g[s].values()) / tot if tot else 0
+            ratios = [g[s][i][0] / g['ads'][i][0] for i in g[s]
+                      if i in g['ads'] and g['ads'][i][0] > 0]
+            cells.append((label, len(g[s]), tot, nps, ratios))
+        lines.append((p, size, se, cells))
+
+    if html:
+        print('<table>')
+        print('<tr><th>problem</th><th>size</th><th>search</th><th>set</th>'
+              '<th>instances</th><th>seconds</th><th>nodes/s</th>'
+              '<th>/ ADS median</th><th>range</th></tr>')
+        for p, size, se, cells in lines:
+            first = True
+            for label, n, tot, nps, ratios in cells:
+                head = ''
+                if first:
+                    k = len(cells)
+                    head = ('<td rowspan="%d">%s</td><td rowspan="%d">%s</td>'
+                            '<td rowspan="%d">%s</td>' % (k, p, k, size, k,
+                                                          se))
+                    first = False
+                rng = ('%s to %s' % (fmt(min(ratios)), fmt(max(ratios)))
+                       if label != 'ADS' else '')
+                med = fmt(statistics.median(ratios)) if label != 'ADS' else ''
+                print('<tr>%s<td>%s</td><td align="right">%d</td>'
+                      '<td align="right">%s</td><td align="right">%.2e</td>'
+                      '<td align="right">%s</td><td align="right">%s</td>'
+                      '</tr>' % (head, label, n, fmt(tot), nps, med, rng))
+        print('</table>')
+    else:
+        print('| problem | size | search | set | instances | seconds | '
+              'nodes/s | / ADS median | range |')
+        print('|---|---|---|---|--:|--:|--:|--:|--:|')
+        for p, size, se, cells in lines:
+            for label, n, tot, nps, ratios in cells:
+                med = fmt(statistics.median(ratios)) if label != 'ADS' else ''
+                rng = ('%s to %s' % (fmt(min(ratios)), fmt(max(ratios)))
+                       if label != 'ADS' else '')
+                print('| %s | %s | %s | %s | %d | %s | %.2e | %s | %s |' %
+                      (p, size, se, label, n, fmt(tot), nps, med, rng))
+    print()
+    if gaps:
+        gaps.sort()
+        print('A/A: %d pairs of runs, median gap %.1f%%, 90th percentile '
+              '%.1f%%' % (len(gaps), 100 * statistics.median(gaps),
+                          100 * gaps[int(0.9 * (len(gaps) - 1))]))
+    print('costs: %s' % ('the same with every set' if not wrong else
+                         'DIFFERENT on %s' % wrong))
+
+
+if __name__ == '__main__':
+    main(sys.argv[1], '--html' in sys.argv[2:])

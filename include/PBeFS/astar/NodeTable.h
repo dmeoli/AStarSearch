@@ -33,6 +33,8 @@
 
 #include <vector>
 
+#include "PBeFS/astar/Structures.h"
+
 #include "PBeFS/core/SearchUtils.h"
 
 /*--------------------------------------------------------------------------*/
@@ -42,6 +44,8 @@
 /// namespace for the Parallel Best-First Search library
 namespace PBeFS_di_unipi_it
 {
+
+#ifdef PBEFS_OWN_STRUCTURES
 
 /*--------------------------------------------------------------------------*/
 /*---------------------------- CLASS NodeTable -----------------------------*/
@@ -187,9 +191,22 @@ class NodeTable {
 
  };  // end( class( NodeTable ) )
 
+#endif  /* PBEFS_OWN_STRUCTURES */
+
 /*--------------------------------------------------------------------------*/
 
 }  // end( namespace PBeFS_di_unipi_it )
+
+/*--------------------------------------------------------------------------*/
+
+// the structures of another set, in place of those of the library
+#if defined( PBEFS_STRUCTURES_STD )
+ #include "PBeFS/astar/structures/std/NodeTable.h"
+#elif defined( PBEFS_STRUCTURES_BOOST )
+ #include "PBeFS/astar/structures/boost/NodeTable.h"
+#elif defined( PBEFS_STRUCTURES_ADS )
+ #include "PBeFS/astar/structures/ads/NodeTable.h"
+#endif
 
 /*--------------------------------------------------------------------------*/
 
