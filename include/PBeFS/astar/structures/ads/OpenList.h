@@ -85,7 +85,7 @@ class HeapOpenList {
  /// true if there is no entry
 
  [[nodiscard]] bool empty( void ) const noexcept {
-  return( f_heap.isEmpty() );
+  return( f_heap.empty() );
   }
 
  /// the number of entries, the stale ones included
@@ -156,7 +156,7 @@ class BucketOpenList {
  /// true if there is no entry
 
  [[nodiscard]] bool empty( void ) const noexcept {
-  return( f_queue.isEmpty() );
+  return( f_queue.empty() );
   }
 
  /// the number of entries, the stale ones included
