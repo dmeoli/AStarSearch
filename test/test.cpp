@@ -543,6 +543,7 @@ template< class Runtime >
 static void test_hda( const std::string & data )
 {
  const auto inst = korf( data );
+ const auto dist = eight_distances( EightPuzzle( EightPuzzle::korf_goal() ) );
  for( unsigned p : { 1u , 2u , 3u , 8u } ) {
   ParallelOptions o;
   o.threads = p;
@@ -563,10 +564,24 @@ static void test_hda( const std::string & data )
    const PerfectHashDistribution< FifteenPuzzle > ph( d );
    check_solution( d , HDAStar< FifteenPuzzle , decltype( ph ) , Runtime >(
                         d , ph , o ).solve() , ki.cost , "HDA*[P]" + tag );
-   const RandomDistribution< FifteenPuzzle > r( d );
-   check_solution( d , HDAStar< FifteenPuzzle , decltype( r ) , Runtime >(
-                        d , r , o ).solve() , ki.cost , "HDA*[R]" + tag );
    }
+
+  // the random owner on the 8-puzzle, whose 9! / 2 states bound the p
+  // copies that it may store of each state, whatever the timing
+  std::size_t k = 0;
+  for( const auto & [ s , dst ] : dist ) {
+   if( ( k++ % 9007 ) != 0 )                   // 21 states, spread out
+    continue;
+   const EightPuzzle e( EightPuzzle::unpack( s ) );
+   const RandomDistribution< EightPuzzle > r( e );
+   const auto sol = HDAStar< EightPuzzle , decltype( r ) , Runtime >(
+                     e , r , o ).solve();
+   if( ! sol.solved() || ( sol.cost != dst ) )
+    check_solution( e , sol , dst , "HDA*[R] 8-puzzle, p " +
+                                    std::to_string( p ) );
+   }
+  check( failures == 0 , "HDA*[R] on 21 states of the 8-puzzle, p " +
+                         std::to_string( p ) );
 
   const auto m = GridMap::random( 300 , 200 , 0.25 , 2 );
   const Grid< 8 > g( m , 0 , 199 , 299 , 199 , 20 );
