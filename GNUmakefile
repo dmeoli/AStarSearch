@@ -37,7 +37,7 @@ bench:
 
 PBeFSSDR = .
 CC = g++
-SW = -O3 -std=c++20 -Wall -Wextra -DNDEBUG
+SW = -O3 -std=c++20 -Wall -Wextra -DNDEBUG -fPIC
 include makefile
 
 lib/libPBeFS.a: $(PBeFSOBJ)

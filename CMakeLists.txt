@@ -128,7 +128,9 @@ target_compile_features(${modName} PUBLIC cxx_std_20)
 
 # The name of the shared library carries the version of its binary interface,
 # which any minor release may change while the major version is 0, and then
-# any major release; MSVC exports the symbols only if asked to.
+# any major release; MSVC exports the symbols only if asked to. The static
+# library is position independent too, so that a shared library of another
+# project can link it.
 if (PROJECT_VERSION_MAJOR EQUAL 0)
     set(soVersion ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 else ()
@@ -137,7 +139,8 @@ endif ()
 set_target_properties(${modName} PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION ${soVersion}
-        WINDOWS_EXPORT_ALL_SYMBOLS ON)
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
+        POSITION_INDEPENDENT_CODE ON)
 
 # Note: do not GLOB files here.
 target_sources(${modName} PRIVATE
