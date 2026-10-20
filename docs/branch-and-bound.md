@@ -149,6 +149,19 @@ detection of duplicates or the avoidance of re-expansions do not.
   bytes, each process would repeat it. The price is that the load is
   balanced only as far as the subtrees of the split are, and that an
   incumbent found by a worker does not prune the nodes of the others.
+- Work stealing [[20]](../README.md#ref-20) gives a decentralized B&B whose
+  workers move nodes only when one of them is idle. Each worker pushes the
+  children it generates in its own queue and extracts its best node; a
+  worker whose queue is empty takes the best node of the queue of another
+  one, the victims being tried from a random one on, and the search ends
+  when a counter of the nodes open or held by a worker is zero. Hence, a
+  worker stays in its own part of the tree, which pays when the evaluator
+  of a worker follows the path from the root to its node (e.g., by applying
+  and undoing the changes of the branchings), since a node sent elsewhere,
+  as in the distributed queues, forces the receiver to move far. The price
+  is a selection that is best-first within each queue only, and hence an
+  order of extraction possibly farther from the sequential one than that of
+  the shared queue.
 - SafePBNF and PA*SE do not apply. The nblocks of PBNF make the detection
   of duplicates local, and the independence test of PA*SE avoids the
   re-expansions; a tree has neither, and PA*SE without duplicates would be
@@ -220,9 +233,9 @@ the scheme it runs, whichever it is. Such a solver then calls
                                                        options );
 
 with the name of the scheme (`sequential`, `shared`, `distributed`,
-`deterministic` or `selfsplit`) read, e.g., from its own parameters, so
-that it needs no change when the library gets a new scheme, or else one
-of the classes, e.g.,
+`deterministic`, `selfsplit` or `stealing`) read, e.g., from its own
+parameters, so that it needs no change when the library gets a new
+scheme, or else one of the classes, e.g.,
 
     auto s = SharedBranchAndBound< P , Runtime >( problem , options ).solve();
     auto s = FarmBranchAndBound< P >( problem , options ).solve();

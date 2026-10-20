@@ -11,9 +11,11 @@
  * on a runtime of the core [see ParallelBranchAndBound.h and core.h],
  * DeterministicBranchAndBound, by synchronous rounds whose outcome does not
  * depend on the timing of the workers [see DeterministicBranchAndBound.h],
- * and SelfSplitBranchAndBound, whose workers search apart the subtrees of
- * a first sampling of the tree [see SelfSplitBranchAndBound.h], all of
- * which can also be chosen by a value [see BranchAndBoundScheme.h].
+ * SelfSplitBranchAndBound, whose workers search apart the subtrees of a
+ * first sampling of the tree [see SelfSplitBranchAndBound.h], and
+ * StealingBranchAndBound, whose workers keep their children and steal a
+ * node when they have none [see StealingBranchAndBound.h], all of which can
+ * also be chosen by a value [see BranchAndBoundScheme.h].
  *
  * \author Donato Meoli \n
  *         Dipartimento di Informatica \n
@@ -42,6 +44,8 @@
 #include "PBeFS/bnb/DeterministicBranchAndBound.h"
 
 #include "PBeFS/bnb/SelfSplitBranchAndBound.h"
+
+#include "PBeFS/bnb/StealingBranchAndBound.h"
 
 #include "PBeFS/bnb/BranchAndBoundScheme.h"
 

@@ -150,33 +150,37 @@ the data that leaves the branching valid, or to resume a search stopped by
 a limit.
 
 The search is sequential (`branch_and_bound( p , options )`), parallel with a
-queue shared by the workers as in SPA* (`SharedBranchAndBound`) or with a
-queue per worker and the children sent to their owners as in HDA*
+queue shared by the workers as in SPA* (`SharedBranchAndBound`) or with a queue
+per worker and the children sent to their owners as in HDA*
 (`DistributedBranchAndBound`), both on the three runtimes, master-worker on a
 FastFlow farm (`FarmBranchAndBound`), with one MPI process per worker
 (`MPIBranchAndBoundSearch`, whose nodes travel as bytes), or by synchronous
 rounds (`DeterministicBranchAndBound`), whose outcome depends neither on the
 timing of the workers nor on their number, as the deterministic mode of
 FiberSCIP [[18]](#ref-18), so that the experiments of a paper can be repeated
-exactly, or by the SelfSplit of Fischetti, Monaci and Salvagnin
-[[19]](#ref-19) (`SelfSplitBranchAndBound`), whose workers search apart, and
-without exchanging anything, the subtrees of a first sampling of the tree, the
-outcome depending then only on the number of the workers. The searches that
-need no external library can also be chosen by a value, or by its name read
-from a file of parameters (`parallel_branch_and_bound( p , bb_scheme(
-"selfsplit" ) , options )`), so that a program built on the library gets every
-new scheme with no change of its own. In the taxonomy of Gendron and Crainic
-[[16]](#ref-16), all of them build one tree in parallel (their type 2),
-asynchronously but for the rounds, with a single pool of open nodes (the
-shared queue, the farm and the rounds) or with a pool per worker (the
-distributed queues, the SelfSplit and MPI); the parallelism inside a node
-(their type 1) is left to the evaluation of the problem, and the search of
-several trees at once (their type 3) is not provided. SafePBNF and PA*SE have
-no counterpart, since they exist to handle duplicates and re-expansions, which
-a tree does not have; for the same reason, the owner of a node only balances
-the load. Its design is discussed in
-[docs/branch-and-bound.md](docs/branch-and-bound.md), and the tests check the
-variants on the 0-1 knapsack against the dynamic program.
+exactly, or by the SelfSplit of Fischetti, Monaci and Salvagnin [[19]](#ref-19)
+(`SelfSplitBranchAndBound`), whose workers search apart, and without exchanging
+anything, the subtrees of a first sampling of the tree, the outcome depending
+then only on the number of the workers, or by work stealing [[20]](#ref-20)
+(`StealingBranchAndBound`), whose workers keep the children they generate and
+take a node from the queue of another worker only when theirs is empty, so that
+each worker stays in its own part of the tree, which pays when moving the
+evaluator of a worker to a distant node is costly. The searches that need no
+external library can also be chosen by a value, or by its name read from a file
+of parameters (`parallel_branch_and_bound( p , bb_scheme( "selfsplit" ) ,
+options )`), so that a program built on the library gets every new scheme with
+no change of its own. In the taxonomy of Gendron and Crainic [[16]](#ref-16),
+all of them build one tree in parallel (their type 2), asynchronously but for
+the rounds, with a single pool of open nodes (the shared queue, the farm and
+the rounds) or with a pool per worker (the distributed queues, the work
+stealing, the SelfSplit and MPI); the parallelism inside a node (their type 1)
+is left to the evaluation of the problem, and the search of several trees at
+once (their type 3) is not provided. SafePBNF and PA*SE have no counterpart,
+since they exist to handle duplicates and re-expansions, which a tree does not
+have; for the same reason, the owner of a node only balances the load. Its
+design is discussed in [docs/branch-and-bound.md](docs/branch-and-bound.md),
+and the tests check the variants on the 0-1 knapsack against the dynamic
+program.
 
 ## The data structures
 
@@ -410,3 +414,5 @@ at the University of Pisa.
 <a id="ref-18"></a>[18] Y. Shinano, S. Heinz, S. Vigerske and M. Winkler, [*FiberSCIP: a shared memory parallelization of SCIP*](https://doi.org/10.1287/ijoc.2017.0762), INFORMS Journal on Computing 30(1), 11-30, 2018.
 
 <a id="ref-19"></a>[19] M. Fischetti, M. Monaci and D. Salvagnin, [*Self-splitting of workload in parallel computation*](https://doi.org/10.1007/978-3-319-07046-9_28), Integration of AI and OR Techniques in Constraint Programming (CPAIOR 2014), Lecture Notes in Computer Science 8451, 394-404, 2014.
+
+<a id="ref-20"></a>[20] R. D. Blumofe and C. E. Leiserson, [*Scheduling multithreaded computations by work stealing*](https://doi.org/10.1145/324133.324234), Journal of the ACM 46(5), 720-748, 1999.

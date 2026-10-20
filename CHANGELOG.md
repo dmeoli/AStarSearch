@@ -47,6 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their order, whose outcome depends neither on the timing of the workers
   nor on their number, on the three runtimes; the tests check that it is
   the same with 1 to 8 workers and at every repetition
+- StealingBranchAndBound, the parallel branch-and-bound by work stealing:
+  each worker keeps the children it generates in its own queue, and takes
+  the best node of the queue of another worker only when its own is empty,
+  so that it stays in its part of the tree, on the three runtimes; its
+  scheme is named stealing (BBScheme::stealing), and the tests check it as
+  the shared and the distributed searches, by cutoff and by its name
 - the data structures of A* chosen at compile time (PBEFS_STRUCTURES in
   CMake, PBeFSSTRUCT in the makefiles, Structures.h): those of the
   library, or those of the standard library, of Boost or of ADS, with the

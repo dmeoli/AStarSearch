@@ -73,7 +73,8 @@ PBeFSH   = $(PBeFSSDR)/include/PBeFS/PBeFS.h \
            $(PBeFSSDR)/include/PBeFS/bnb/BranchAndBoundScheme.h \
            $(PBeFSSDR)/include/PBeFS/bnb/DeterministicBranchAndBound.h \
            $(PBeFSSDR)/include/PBeFS/bnb/ParallelBranchAndBound.h \
-           $(PBeFSSDR)/include/PBeFS/bnb/SelfSplitBranchAndBound.h
+           $(PBeFSSDR)/include/PBeFS/bnb/SelfSplitBranchAndBound.h \
+           $(PBeFSSDR)/include/PBeFS/bnb/StealingBranchAndBound.h
 
 # the headers of the optional runtimes- - - - - - - - - - - - - - - - - - - -
 

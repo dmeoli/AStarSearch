@@ -49,6 +49,8 @@
 
 #include "PBeFS/bnb/SelfSplitBranchAndBound.h"
 
+#include "PBeFS/bnb/StealingBranchAndBound.h"
+
 /*--------------------------------------------------------------------------*/
 /*------------------------------- NAMESPACE --------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -68,7 +70,8 @@ enum class BBScheme {
  shared ,          ///< one shared queue [see SharedBranchAndBound]
  distributed ,     ///< a queue per worker [see DistributedBranchAndBound]
  deterministic ,   ///< synchronous rounds [see DeterministicBranchAndBound]
- selfsplit         ///< a split of a sampling [see SelfSplitBranchAndBound]
+ selfsplit ,       ///< a split of a sampling [see SelfSplitBranchAndBound]
+ stealing          ///< work stealing [see StealingBranchAndBound]
  };
 
 /*--------------------------------------------------------------------------*/
@@ -77,8 +80,9 @@ enum class BBScheme {
 
 namespace detail {
  /// the names of the schemes, in the order of BBScheme
- inline constexpr std::array< std::string_view , 5 > bb_scheme_names = {
-  "sequential" , "shared" , "distributed" , "deterministic" , "selfsplit" };
+ inline constexpr std::array< std::string_view , 6 > bb_scheme_names = {
+  "sequential" , "shared" , "distributed" , "deterministic" , "selfsplit" ,
+  "stealing" };
  }  // end( namespace detail )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -125,8 +129,10 @@ template< BranchAndBound P , class Runtime = ThreadRuntime >
   case( BBScheme::deterministic ):
    return( solve( DeterministicBranchAndBound< P , Runtime >( problem ,
                                                                o ) ) );
-  default:
+  case( BBScheme::selfsplit ):
    return( solve( SelfSplitBranchAndBound< P , Runtime >( problem , o ) ) );
+  default:
+   return( solve( StealingBranchAndBound< P , Runtime >( problem , o ) ) );
   }
  }
 

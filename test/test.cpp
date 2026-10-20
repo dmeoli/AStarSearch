@@ -17,9 +17,10 @@
  *     test spa-thread | spa-openmp
  *     test pbnf-thread | pbnf-openmp
  *     test pase-thread
- *     test bb | bb-shared-thread | bb-dist-thread
- *     test bb-shared-openmp | bb-dist-openmp
- *     test bb-shared-fastflow | bb-dist-fastflow | bb-farm-fastflow
+ *     test bb | bb-shared-thread | bb-dist-thread | bb-steal-thread
+ *     test bb-shared-openmp | bb-dist-openmp | bb-steal-openmp
+ *     test bb-shared-fastflow | bb-dist-fastflow | bb-steal-fastflow
+ *     test bb-farm-fastflow
  *     test bb-det-thread | bb-det-openmp | bb-det-fastflow
  *     test bb-split-thread | bb-split-openmp | bb-split-fastflow
  *     test bb-scheme
@@ -1521,7 +1522,8 @@ static void test_bb( const std::string & )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // a parallel B&B of the problem q: K = 0 the shared queue, K = 1 the
-// distributed queues, K = 2 the farm (the runtime is then FastFlow)
+// distributed queues, K = 2 the farm (the runtime is then FastFlow), K = 3
+// the work stealing
 
 template< int K , class Runtime , class Q >
 static auto bb_parallel( const Q & q , const ParallelBBOptions & o ,
@@ -1536,6 +1538,9 @@ static auto bb_parallel( const Q & q , const ParallelBBOptions & o ,
  else
   if constexpr( K == 1 )
    return( solve( DistributedBranchAndBound< Q , Runtime >( q , o ) ) );
+  else
+   if constexpr( K == 3 )
+    return( solve( StealingBranchAndBound< Q , Runtime >( q , o ) ) );
   #ifdef PBEFS_HAS_FASTFLOW
   else
    return( solve( FarmBranchAndBound< Q >( q , o ) ) );
@@ -1553,7 +1558,8 @@ template< int K , class Runtime >
 static void test_bb_parallel( const std::string & )
 {
  const std::string name = std::string( K == 0 ? "shared" :
-                                       K == 1 ? "distributed" : "farm" ) +
+                                       K == 1 ? "distributed" :
+                                       K == 2 ? "farm" : "stealing" ) +
                           " B&B on " + Runtime::name();
  int i = 0;
  for( const Knapsack & kp : knapsacks() ) {
@@ -1828,7 +1834,7 @@ static void test_bb_scheme( const std::string & )
  bool names = true;
  for( BBScheme s : { BBScheme::sequential , BBScheme::shared ,
                      BBScheme::distributed , BBScheme::deterministic ,
-                     BBScheme::selfsplit } )
+                     BBScheme::selfsplit , BBScheme::stealing } )
   names = names && ( bb_scheme( bb_scheme_name( s ) ) == s );
  bool refused = false;
  try {
@@ -1844,7 +1850,8 @@ static void test_bb_scheme( const std::string & )
   const double opt = double( kp.optimum() );
   const std::string tag = " knapsack " + std::to_string( i++ );
   for( std::string_view name : { "sequential" , "shared" , "distributed" ,
-                                 "deterministic" , "selfsplit" } )
+                                 "deterministic" , "selfsplit" ,
+                                 "stealing" } )
    for( unsigned p : { 1u , 3u } ) {
     ParallelBBOptions o;
     o.threads = p;
@@ -1867,11 +1874,11 @@ static void test_bb_scheme( const std::string & )
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 // the incumbent given to the workers by cutoff( z ): the sequential, the
-// shared, the distributed and the deterministic B&B find the optimum with
-// workers that fence the nodes by it, which they do (some evaluated node
-// is infeasible, which none is in the knapsack alone), z never exceeds the
-// optimum, and the outcome of the deterministic B&B is the same with 1 to
-// 8 workers
+// shared, the distributed, the stealing and the deterministic B&B find the
+// optimum with workers that fence the nodes by it, which they do (some
+// evaluated node is infeasible, which none is in the knapsack alone), z
+// never exceeds the optimum, and the outcome of the deterministic B&B is
+// the same with 1 to 8 workers
 
 static void test_bb_cutoff( const std::string & )
 {
@@ -1895,6 +1902,8 @@ static void test_bb_cutoff( const std::string & )
          "shared B&B by cutoff" + tag );
   check( good( DistributedBranchAndBound< CutoffKnapsack >( ck , o )
                .solve() ) , "distributed B&B by cutoff" + tag );
+  check( good( StealingBranchAndBound< CutoffKnapsack >( ck , o ).solve() ) ,
+         "stealing B&B by cutoff" + tag );
   o.round = 4;
   std::optional< std::tuple< double , double , std::uint64_t ,
                              std::uint64_t > > ref;
@@ -2010,6 +2019,7 @@ static const std::vector< Case > cases = {
  { "bb" , "-" , test_bb } ,
  { "bb-shared-thread" , "-" , test_bb_parallel< 0 , ThreadRuntime > } ,
  { "bb-dist-thread" , "-" , test_bb_parallel< 1 , ThreadRuntime > } ,
+ { "bb-steal-thread" , "-" , test_bb_parallel< 3 , ThreadRuntime > } ,
  { "bb-det-thread" , "-" , test_bb_det< ThreadRuntime > } ,
  { "bb-split-thread" , "-" , test_bb_split< ThreadRuntime > } ,
  { "bb-scheme" , "-" , test_bb_scheme } ,
@@ -2021,6 +2031,8 @@ static const std::vector< Case > cases = {
   { "bb-shared-openmp" , "openmp" ,
     test_bb_parallel< 0 , OpenMPRuntime > } ,
   { "bb-dist-openmp" , "openmp" , test_bb_parallel< 1 , OpenMPRuntime > } ,
+  { "bb-steal-openmp" , "openmp" ,
+    test_bb_parallel< 3 , OpenMPRuntime > } ,
   { "bb-det-openmp" , "openmp" , test_bb_det< OpenMPRuntime > } ,
   { "bb-split-openmp" , "openmp" , test_bb_split< OpenMPRuntime > } ,
  #endif
@@ -2031,6 +2043,8 @@ static const std::vector< Case > cases = {
     test_bb_parallel< 0 , FastFlowRuntime > } ,
   { "bb-dist-fastflow" , "fastflow" ,
     test_bb_parallel< 1 , FastFlowRuntime > } ,
+  { "bb-steal-fastflow" , "fastflow" ,
+    test_bb_parallel< 3 , FastFlowRuntime > } ,
   { "bb-farm-fastflow" , "fastflow" ,
     test_bb_parallel< 2 , FastFlowRuntime > } ,
   { "bb-det-fastflow" , "fastflow" , test_bb_det< FastFlowRuntime > } ,
